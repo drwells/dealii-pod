@@ -27,16 +27,16 @@ namespace POD
   class PODVectors
   {
   private:
-    Triangulation<dim> triangulation;
-    FE_Q<dim>          fe;
-    DoFHandler<dim>    dof_handler;
-    SparsityPattern    sparsity_pattern;
-    int                num_pod_vectors;
-    std::string        snapshot_glob;
-    std::string        mesh_file_name;
+    Triangulation<dim>                    triangulation;
+    FE_Q<dim>                             fe;
+    DoFHandler<dim>                       dof_handler;
+    SparsityPattern                       sparsity_pattern;
+    int                                   num_pod_vectors;
+    std::string                           snapshot_glob;
+    std::string                           mesh_file_name;
     std::map<int, dealii::Vector<double>> snapshots;
-    dealii::SparseMatrix<double> mass_matrix;
-    POD::PODBasis        pod_result;
+    dealii::SparseMatrix<double>          mass_matrix;
+    POD::PODBasis                         pod_result;
 
   public:
     PODVectors (int num_pod_vectors)
@@ -82,7 +82,6 @@ namespace POD
     {
       glob_t glob_result;
       glob(snapshot_glob.c_str(), GLOB_TILDE, nullptr, &glob_result);
-
       std::cout << "number of snapshots: " << glob_result.gl_pathc << std::endl;
       for (size_t i = 0; i < glob_result.gl_pathc; ++i)
         {
