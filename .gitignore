@@ -1,2 +1,9 @@
 *.vtk
 *.txt
+ns/CMakeFiles/*
+CMakeFiles/*
+*.cmake
+*\~
+*\#
+Makefile
+*.o
