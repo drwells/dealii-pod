@@ -27,44 +27,29 @@ namespace POD
   class PODVectors
   {
   private:
-    Triangulation<dim>                    triangulation;
-    FE_Q<dim>                             fe;
-    DoFHandler<dim>                       dof_handler;
-    SparsityPattern                       sparsity_pattern;
-    int                                   num_pod_vectors;
-    std::string                           snapshot_glob;
-    std::string                           mesh_file_name;
-    std::map<int, dealii::Vector<double>> snapshots;
-    dealii::SparseMatrix<double>          mass_matrix;
-    POD::PODBasis                         pod_result;
+    FE_Q<dim>                    fe;
+    DoFHandler<dim>              dof_handler;
+    SparsityPattern              sparsity_pattern;
+    unsigned int                 n_pod_vectors;
+    std::string                  snapshot_glob;
+    std::string                  mesh_file_name;
+    dealii::SparseMatrix<double> mass_matrix;
+    POD::BlockPODBasis           pod_result;
 
   public:
-    PODVectors (int num_pod_vectors)
+    PODVectors (int n_pod_vectors)
       :
       fe(1),
       dof_handler()
     {
-      this->num_pod_vectors = num_pod_vectors;
-      snapshot_glob = "snapshot-*.txt";
+      this->n_pod_vectors = n_pod_vectors;
+      snapshot_glob = "snapshot-*.h5";
       mesh_file_name = "solution-000.vtk";
     }
 
     void load_mesh()
     {
-      dealii::GridIn<dim> grid_in;
-      grid_in.attach_triangulation(triangulation);
-      std::filebuf file_buffer;
-      if (file_buffer.open(mesh_file_name, std::ios::in))
-        {
-          std::istream input_stream(&file_buffer);
-          grid_in.read_vtk(input_stream);
-          file_buffer.close();
-        }
-      else
-        {
-          ExcIO();
-        }
-      dof_handler.initialize(triangulation, fe);
+      // TODO load the DoFHandler
       std::cout << "DoFs: " << dof_handler.n_dofs() << std::endl;
       std::cout << "active cells: " << triangulation.n_active_cells() << std::endl;
 
@@ -73,33 +58,16 @@ namespace POD
       CompressedSparsityPattern c_sparsity(dof_handler.n_dofs());
       DoFTools::make_sparsity_pattern(dof_handler, c_sparsity);
       sparsity_pattern.copy_from(c_sparsity);
-
       mass_matrix.reinit(sparsity_pattern);
       MatrixCreator::create_mass_matrix(dof_handler, quadrature_rule, mass_matrix);
     }
 
-    void load_snapshots()
-    {
-      glob_t glob_result;
-      glob(snapshot_glob.c_str(), GLOB_TILDE, nullptr, &glob_result);
-      std::cout << "number of snapshots: " << glob_result.gl_pathc << std::endl;
-      for (size_t i = 0; i < glob_result.gl_pathc; ++i)
-        {
-          std::ifstream input_stream(std::string(glob_result.gl_pathv[i]));
-          std::istream_iterator<double> start(input_stream), end;
-// TODO there seems to be some bug with initializing a dealii::Vector from iterators in this way.
-// This copy should not be necessary.
-          std::vector<double> _snapshot(start, end);
-          dealii::Vector<double> snapshot(_snapshot.begin(), _snapshot.end());
-          snapshots.insert(std::pair<int, dealii::Vector<double>>(i, snapshot));
-        }
-      globfree(&glob_result);
-      std::cout << "Loaded snapshots." << std::endl;
-    }
-
     void compute_pod_basis()
     {
-      POD::pod_basis(mass_matrix, snapshots, num_pod_vectors, pod_result);
+      std::vector<std::string> snapshot_file_names;
+      std::string dataset_name("/v");
+      method_of_snapshots(mass_matrix, snapshot_file_names, dataset_name,
+                          n_pod_vectors, pod_basis);
     }
 
     void save_pod_basis()
@@ -112,24 +80,23 @@ namespace POD
         }
       singular_values_stream.close();
 
-      for (int i = 0; i < num_pod_vectors; ++i)
-        {
-          std::ostringstream file_name;
-          file_name << "podvector-" << i << ".txt";
-          std::ofstream pod_vector_stream;
-          pod_vector_stream.open(file_name.str());
-          for (auto value : pod_result.vectors[i])
-            {
-              pod_vector_stream << value << " ";
-            }
-          pod_vector_stream.close();
-        }
+      // for (int i = 0; i < n_pod_vectors; ++i)
+      //   {
+      //     std::ostringstream file_name;
+      //     file_name << "podvector-" << i << ".txt";
+      //     std::ofstream pod_vector_stream;
+      //     pod_vector_stream.open(file_name.str());
+      //     for (auto value : pod_result.vectors[i])
+      //       {
+      //         pod_vector_stream << value << " ";
+      //       }
+      //     pod_vector_stream.close();
+      //   }
     }
 
     void run()
     {
       load_mesh();
-      load_snapshots();
       compute_pod_basis();
       save_pod_basis();
     }
