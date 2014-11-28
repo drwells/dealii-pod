@@ -7,13 +7,14 @@
 #include <deal.II/lac/petsc_vector_base.h>
 #include <deal.II/lac/slepc_solver.h>
 #include <deal.II/lac/sparse_matrix.h>
+#include <deal.II/lac/block_vector.h>
 #include <deal.II/lac/vector.h>
 
 #include <complex>
 #include <map>
 #include <vector>
 
-#include "h5.h"
+#include "../h5/h5.h"
 
 namespace POD
 {
@@ -43,16 +44,17 @@ namespace POD
   class BlockPODBasis
   {
   public:
+    BlockPODBasis();
     BlockPODBasis(unsigned int n_blocks, unsigned int n_dofs_per_block);
-    reinit(unsigned int n_blocks, unsigned int n_dofs_per_block);
-    std::map< int, dealii::BlockVector<double> > vectors;
+    std::vector<dealii::BlockVector<double>> vectors;
     dealii::BlockVector<double> mean_vector;
     std::vector<double> singular_values;
-    unsigned int get_num_pod_vectors() const;
-    void project_load_vector(dealii::Vector<double> &load_vector,
-                             dealii::Vector<double> &pod_load_vector);
-    void project_to_fe(const dealii::Vector<double> &pod_vector,
-                       dealii::Vector<double> &fe_vector) const;
+    unsigned int get_n_pod_vectors() const;
+    void reinit(unsigned int n_blocks, unsigned int n_dofs_per_block);
+    void project_load_vector(dealii::BlockVector<double> &load_vector,
+                             dealii::BlockVector<double> &pod_load_vector) const;
+    void project_to_fe(const dealii::BlockVector<double> &pod_vector,
+                       dealii::BlockVector<double> &fe_vector) const;
   private:
     unsigned int n_blocks;
     unsigned int n_dofs_per_block;
@@ -71,7 +73,6 @@ namespace POD
 
   void method_of_snapshots(dealii::SparseMatrix<double> &mass_matrix,
                            std::vector<std::string> &snapshot_file_names,
-                           std::string &dataset_name,
                            unsigned int n_pod_vectors,
                            BlockPODBasis &pod_basis);
 

@@ -17,7 +17,6 @@ namespace POD
 
   void method_of_snapshots(dealii::SparseMatrix<double> &mass_matrix,
                            std::vector<std::string> &snapshot_file_names,
-                           std::string &dataset_name,
                            unsigned int n_pod_vectors,
                            BlockPODBasis &pod_basis)
   {
@@ -26,45 +25,50 @@ namespace POD
 
     const double mean_weight = 1.0/snapshot_file_names.size();
     bool pod_basis_initialized = false;
-    const int n_snaphots = snapshot_file_names.size();
-    int n_dofs_per_block = 0;
+    const int n_snapshots = snapshot_file_names.size();
+    unsigned int n_dofs_per_block = 0;
+    unsigned int n_blocks = 0;
     unsigned int i = 0;
-    for (auto &snapshot_file : snapshot_file_names)
+
+    for (auto &snapshot_file_name : snapshot_file_names)
       {
-        load_hdf5(snapshot_file, dataset_name, block_vector);
+        H5::load_block_vector(snapshot_file_name, block_vector);
         if (!pod_basis_initialized)
           {
-            n_dofs_per_block = block_vector.block(0).size();
             n_blocks = block_vector.n_blocks();
+            Assert(n_blocks > 0, dealii::ExcInternalError());
+            n_dofs_per_block = block_vector.block(0).size();
             pod_basis.reinit(n_blocks, n_dofs_per_block);
             pod_basis_initialized = true;
           }
-        pod_basis.mean_vector.sadd(0.0, mean_weight, block_vector);
-        snapshots.insert(i, std::move(block_vector));
-        ++i;
+        Assert(block_vector.n_blocks() == n_blocks, dealii::ExcIO());
+        pod_basis.mean_vector.sadd(mean_weight, block_vector);
+        snapshots.push_back(std::move(block_vector));
       }
-
 
     // center the trajectory.
-    for (auto& snapshot : snapshots)
+    for (auto &snapshot : snapshots)
       {
-        snapshot -= pod_basis.mean_vector;
+        snapshot.sadd(-1.0, pod_basis.mean_vector);
       }
 
-    dealii::LAPACKFullMatrix<double> correlation_matrix(n_snaphots);
-    dealii::LAPACKFullMatrix<double> identity(n_snaphots);
+    std::cout << "centered trajectory." << std::endl;
+
+    dealii::LAPACKFullMatrix<double> correlation_matrix(n_snapshots);
+    dealii::LAPACKFullMatrix<double> identity(n_snapshots);
     identity = 0.0;
-    dealii::Vector<double> temp(pod_basis.mean_vector.block(0).size());
+    dealii::Vector<double> temp(n_dofs_per_block);
+    std::cout << "n_snapshots: " << n_snapshots << std::endl;
+    std::cout << "snapshot vector length: " << snapshots.size() << std::endl;
     for (unsigned int row = 0; row < n_snapshots; ++row)
       {
         for (unsigned int column = 0; column <= row; ++column)
           {
             double value = 0;
-            for (unsigned int block_n = 0; block_n < mean_block.size();
-                 ++block_n)
+            for (unsigned int block_n = 0; block_n < n_blocks; ++block_n)
               {
-                mass_matrix.vmult(temp, snapshots[i].block(block_n));
-                value += temp * snapshots[j].block(block_n);
+                mass_matrix.vmult(temp, snapshots[row].block(block_n));
+                value += temp * snapshots[column].block(block_n);
               }
             correlation_matrix(row, column) = value;
             correlation_matrix(column, row) = value;
@@ -72,18 +76,32 @@ namespace POD
         identity(row, row) = 1.0;
       }
 
-    dealii::Vector<double> eigenvectors(n_pod_vectors);
-    correlation_matrix.compute_eigenvalues_symmetric(identity, eigenvectors);
-    for (unsigned int i = 0; i < n_pod_vectors; ++i)
+    // correlation_matrix.print_formatted(std::cout, 2, false);
+
+    std::vector<dealii::Vector<double>> eigenvectors(n_snapshots);
+    correlation_matrix.compute_generalized_eigenvalues_symmetric(identity,
+                                                                 eigenvectors);
+    std::cout << "computed eigenvalues and eigenvectors." << std::endl;
+    std::cout << "eigenvectors size: " << eigenvectors.size() << std::endl;
+    pod_basis.singular_values.resize(0);
+    for (i = 0; i < n_snapshots; ++i)
       {
         // As the matrix has provably positive real eigenvalues...
         std::complex<double> eigenvalue = correlation_matrix.eigenvalue(i);
-        Assert(eigenvalue.imag() == 0.0, dealii::ExcInternalError());
-        Assert(eigenvalue.real() > 0.0, dealii::ExcInternalError());
-        pod_basis.singular_values.insert(i, std::sqrt(eigenvalue.real()));
+        std::cout << "eigenvalue number "
+                  << i
+                  << " is "
+                  << eigenvalue.real()
+                  << " + "
+                  << eigenvalue.imag()
+                  << "j"
+                  << std::endl;
+        // Assert(eigenvalue.imag() == 0.0, dealii::ExcInternalError());
+        // Assert(eigenvalue.real() > 0.0, dealii::ExcInternalError());
+        pod_basis.singular_values.push_back(std::sqrt(eigenvalue.real()));
       }
 
-    unsigned int pod_vector_n = 0;
+    pod_basis.vectors.resize(0);
     for (auto &eigenvector : eigenvectors)
       {
         block_vector = 0;
@@ -93,8 +111,7 @@ namespace POD
             block_vector.sadd(0.0, eigenvector[i], snapshot);
             ++i;
           }
-        pod_basis.pod_vectors.insert(pod_vector_n, std::move(block_vector));
-        ++pod_vector_n;
+        pod_basis.vectors.push_back(std::move(block_vector));
       }
   }
 
@@ -167,32 +184,17 @@ namespace POD
     dealii::FullMatrix<double> &snapshots;
   };
 
-  class BlockPODBasis
-  {
-  public:
-    BlockPODBasis(unsigned int n_blocks, unsigned int n_dofs_per_block);
-    std::map< int, dealii::BlockVector<double> > vectors;
-    dealii::BlockVector<double> mean_vector;
-    std::vector<double> singular_values;
-    unsigned int get_num_pod_vectors() const;
-    void reinit(unsigned int n_blocks, unsigned int n_dofs_per_block);
-    void project_load_vector(dealii::Vector<double> &load_vector,
-                             dealii::Vector<double> &pod_load_vector);
-    void project_to_fe(const dealii::Vector<double> &pod_vector,
-                       dealii::Vector<double> &fe_vector) const;
-  private:
-    unsigned int n_blocks;
-    unsigned int n_dofs_per_block;
-  };
+  BlockPODBasis::BlockPODBasis() : n_blocks(0), n_dofs_per_block(0) {}
 
   BlockPODBasis::BlockPODBasis(unsigned int n_blocks, unsigned int n_dofs_per_block) :
-    n_blocks(n_dofs), n_dofs_per_block(n_dofs_per_block) {}
+    n_blocks(n_blocks), n_dofs_per_block(n_dofs_per_block) {}
 
   void BlockPODBasis::reinit(unsigned int n_blocks, unsigned int n_dofs_per_block)
   {
     this->n_blocks = n_blocks;
     this->n_dofs_per_block = n_dofs_per_block;
     mean_vector.reinit(n_blocks, n_dofs_per_block);
+    mean_vector.collect_sizes();
   }
 
   unsigned int BlockPODBasis::get_n_pod_vectors() const
@@ -201,13 +203,13 @@ namespace POD
     }
 
   void BlockPODBasis::project_load_vector(dealii::BlockVector<double> &load_vector,
-                                          dealii::BlockVector<double> &pod_load_vector)
+                                          dealii::BlockVector<double> &pod_load_vector) const
   {
-    ;
+
   }
 
   void BlockPODBasis::project_to_fe(const dealii::BlockVector<double> &pod_vector,
-                                    dealii::BlockVector<double> &fe_vector)
+                                    dealii::BlockVector<double> &fe_vector) const
     {
 
     }
@@ -215,7 +217,7 @@ namespace POD
   class PODBasis
   {
   public:
-    std::map<int, dealii::Vector<double>> vectors;
+    std::vector<dealii::Vector<double>> vectors;
     std::vector<double> singular_values;
     unsigned int get_num_pod_vectors() const;
     void project_load_vector(dealii::Vector<double> &load_vector,
@@ -270,7 +272,6 @@ namespace POD
     eigensolver.solve(pod_data, result.singular_values, eigenvectors,
                       num_pod_vectors);
 
-    std::cout << "Finished computing eigenvalues." << std::endl;
     for (int i = num_pod_vectors - 1; i >= 0; --i)
       {
         // Note that we previously computed the *eigenvalues*, not the singular values.
@@ -287,7 +288,6 @@ namespace POD
         // Memory is sometimes exhausted near here, so explicitly erase the vector.
         eigenvectors.erase(eigenvectors.end() - 1);
       }
-    std::cout << "copied eigenvectors to PODBasis." << std::endl;
   }
 
   void reduced_matrix(dealii::SparseMatrix<double> &mass_matrix,

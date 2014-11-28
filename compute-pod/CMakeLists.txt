@@ -8,10 +8,11 @@ SET(TARGET "compute-pod")
 # Declare all source files the target consists of:
 SET(TARGET_SRC
   ${TARGET}.cc
-  pod.cc
-  pod.h
+  ../pod/pod.cc
+  ../pod/pod.h
+  ../h5/h5.h
   )
-SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wall -Wextra -Wpedantic")
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
 # Usually, you will not need to modify anything beyond this point...
 
