@@ -17,7 +17,6 @@ namespace POD
 
   void method_of_snapshots(dealii::SparseMatrix<double> &mass_matrix,
                            std::vector<std::string> &snapshot_file_names,
-                           unsigned int n_pod_vectors,
                            BlockPODBasis &pod_basis)
   {
     dealii::BlockVector<double> block_vector;
@@ -25,7 +24,7 @@ namespace POD
 
     const double mean_weight = 1.0/snapshot_file_names.size();
     bool pod_basis_initialized = false;
-    const int n_snapshots = snapshot_file_names.size();
+    const unsigned int n_snapshots = snapshot_file_names.size();
     unsigned int n_dofs_per_block = 0;
     unsigned int n_blocks = 0;
     unsigned int i = 0;
@@ -42,14 +41,14 @@ namespace POD
             pod_basis_initialized = true;
           }
         Assert(block_vector.n_blocks() == n_blocks, dealii::ExcIO());
-        pod_basis.mean_vector.sadd(mean_weight, block_vector);
+        pod_basis.mean_vector.add(mean_weight, block_vector);
         snapshots.push_back(std::move(block_vector));
       }
 
     // center the trajectory.
     for (auto &snapshot : snapshots)
       {
-        snapshot.sadd(-1.0, pod_basis.mean_vector);
+        snapshot.add(-1.0, pod_basis.mean_vector);
       }
 
     std::cout << "centered trajectory." << std::endl;
@@ -57,11 +56,12 @@ namespace POD
     dealii::LAPACKFullMatrix<double> correlation_matrix(n_snapshots);
     dealii::LAPACKFullMatrix<double> identity(n_snapshots);
     identity = 0.0;
-    dealii::Vector<double> temp(n_dofs_per_block);
     std::cout << "n_snapshots: " << n_snapshots << std::endl;
     std::cout << "snapshot vector length: " << snapshots.size() << std::endl;
+#pragma omp parallel for
     for (unsigned int row = 0; row < n_snapshots; ++row)
       {
+        dealii::Vector<double> temp(n_dofs_per_block);
         for (unsigned int column = 0; column <= row; ++column)
           {
             double value = 0;
@@ -101,93 +101,100 @@ namespace POD
         pod_basis.singular_values.push_back(std::sqrt(eigenvalue.real()));
       }
 
-    pod_basis.vectors.resize(0);
-    for (auto &eigenvector : eigenvectors)
+    pod_basis.vectors.resize(n_snapshots);
+#pragma omp parallel for
+    for (unsigned int eigenvector_n = 0; eigenvector_n < n_snapshots; ++eigenvector_n)
       {
-        block_vector = 0;
-        i = 0;
+        dealii::BlockVector<double> pod_vector(n_blocks, n_dofs_per_block);
+        pod_vector.collect_sizes();
+        pod_vector = 0;
+        auto &eigenvector = eigenvectors.at(eigenvector_n);
+        auto singular_value = pod_basis.singular_values.at(eigenvector_n);
+
+        unsigned int snapshot_n = 0;
         for (auto &snapshot : snapshots)
           {
-            block_vector.sadd(0.0, eigenvector[i], snapshot);
-            ++i;
+            if (!std::isnan(eigenvector[snapshot_n]) && !std::isnan(singular_value))
+              {
+                pod_vector.add(eigenvector[snapshot_n], snapshot);
+              }
+            ++snapshot_n;
           }
-        pod_basis.vectors.push_back(std::move(block_vector));
+        pod_basis.vectors[eigenvector_n] = std::move(pod_vector);
+      }
+    std::reverse(pod_basis.singular_values.begin(), pod_basis.singular_values.end());
+    std::reverse(pod_basis.vectors.begin(), pod_basis.vectors.end());
+
+    for (unsigned int pod_vector_n = 0; pod_vector_n < pod_basis.vectors.size();
+         ++pod_vector_n)
+      {
+        auto &singular_value = pod_basis.singular_values[pod_vector_n];
+        if (!std::isnan(singular_value))
+          {
+            pod_basis.vectors[pod_vector_n] *= 1.0/pod_basis.singular_values[pod_vector_n];
+          }
       }
   }
 
-  class EigenvalueMethod : public dealii::PETScWrappers::MatrixFree
-  // Class for computing POD vectors by the eigenproblem
-  //
-  // Y^T Y M v = l v
-  //
-  // where Y is the matrix of snapshots (each row is one snapshot), M is the
-  // mass matrix, v is a POD vector, and l is a singular value.
-  //
-  // Perhaps this was a premature optimization, but I did not use the usual
-  // convention of one snapshot per column to greatly speed up the reading of
-  // the snapshot matrix.
+  EigenvalueMethod::EigenvalueMethod(dealii::SparseMatrix<double> &mass_matrix,
+                                     dealii::FullMatrix<double> &snapshots,
+                                     unsigned int n_blocks)
+    : mass_matrix (mass_matrix), snapshots (snapshots), n_blocks (n_blocks)
   {
-  public:
-    EigenvalueMethod(dealii::SparseMatrix<double> &mass_matrix,
-                     dealii::FullMatrix<double> &snapshots,
-                     unsigned int num_blocks)
-      : num_blocks (num_blocks), mass_matrix (mass_matrix), snapshots (snapshots)
-    {
-      // use the reinit function to set the number of rows and columns. This is,
-      // AFAIK, the only way to set the underlying PETSc matrix representation's
-      // values.
-      const unsigned int local_rows = this->mass_matrix.m()*num_blocks;
-      const unsigned int local_columns = this->mass_matrix.n()*num_blocks;
-      reinit(local_rows, local_columns, local_rows, local_columns);
-    }
+    // use the reinit function to set the number of rows and columns. This is,
+    // AFAIK, the only way to set the underlying PETSc matrix representation's
+    // values.
+    const unsigned int local_rows = this->mass_matrix.m()*n_blocks;
+    const unsigned int local_columns = this->mass_matrix.n()*n_blocks;
+    reinit(local_rows, local_columns, local_rows, local_columns);
+  }
 
-    void vmult(VectorBase &dst, const VectorBase &src) const
-    {
-      dealii::Vector<double> tmp_component_src(src.size()/num_blocks);
-      dealii::Vector<double> tmp_component_dst(src.size()/num_blocks);
-      dealii::Vector<double> tmp_short(snapshots.m());
-      dealii::Vector<double> tmp_long(snapshots.n());
-      dealii::Vector<double> tmp_dst(dst.size());
+  void EigenvalueMethod::vmult(VectorBase &dst, const VectorBase &src) const
+  {
+    dealii::Vector<double> tmp_component_src(src.size()/n_blocks);
+    dealii::Vector<double> tmp_component_dst(src.size()/n_blocks);
+    dealii::Vector<double> tmp_short(snapshots.m());
+    dealii::Vector<double> tmp_long(snapshots.n());
+    dealii::Vector<double> tmp_dst(dst.size());
 
-      // TODO this requires *a lot* of extra copying. There may be a better way to do
-      // this with VectorView.
-      for (unsigned int j = 0; j < num_blocks; ++j)
-        {
-          copy_vector(src, 0, 0, src.size()/num_blocks, tmp_component_src);
-          mass_matrix.vmult(tmp_component_dst, tmp_component_src);
-          copy_vector(tmp_component_src, 0, j*tmp_long.size()/num_blocks,
-                      tmp_component_src.size(), tmp_long);
-        }
-      snapshots.vmult(tmp_short, tmp_long);
-      snapshots.Tvmult(tmp_dst, tmp_short);
-      copy_vector(tmp_dst, 0, 0, dst.size(), dst);
-    }
+    // TODO this requires *a lot* of extra copying. There may be a better way to do
+    // this with VectorView.
+    for (unsigned int j = 0; j < n_blocks; ++j)
+      {
+        copy_vector(src, 0, 0, src.size()/n_blocks, tmp_component_src);
+        mass_matrix.vmult(tmp_component_dst, tmp_component_src);
+        copy_vector(tmp_component_src, 0, j*tmp_long.size()/n_blocks,
+                    tmp_component_src.size(), tmp_long);
+      }
+    snapshots.vmult(tmp_short, tmp_long);
+    snapshots.Tvmult(tmp_dst, tmp_short);
+    copy_vector(tmp_dst, 0, 0, dst.size(), dst);
+  }
 
-    void vmult_add(VectorBase &dst, const VectorBase &src) const
-    {
-      Assert(false, dealii::ExcNotImplemented());
-    }
+  void EigenvalueMethod::vmult_add(VectorBase &dst, const VectorBase &src) const
+  {
+    Assert(false, dealii::ExcNotImplemented());
+  }
 
-    void Tvmult(VectorBase &dst, const VectorBase &src) const
-    {
-      Assert(false, dealii::ExcNotImplemented());
-    }
+  void EigenvalueMethod::Tvmult(VectorBase &dst, const VectorBase &src) const
+  {
+    Assert(false, dealii::ExcNotImplemented());
+  }
 
-    void Tvmult_add(VectorBase &dst, const VectorBase &src) const
-    {
-      Assert(false, dealii::ExcNotImplemented());
-    }
-    unsigned int num_blocks;
+  void EigenvalueMethod::Tvmult_add(VectorBase &dst, const VectorBase &src) const
+  {
+    Assert(false, dealii::ExcNotImplemented());
+  }
 
-  private:
-    dealii::SparseMatrix<double> &mass_matrix;
-    dealii::FullMatrix<double> &snapshots;
-  };
 
   BlockPODBasis::BlockPODBasis() : n_blocks(0), n_dofs_per_block(0) {}
 
   BlockPODBasis::BlockPODBasis(unsigned int n_blocks, unsigned int n_dofs_per_block) :
-    n_blocks(n_blocks), n_dofs_per_block(n_dofs_per_block) {}
+    n_blocks(n_blocks), n_dofs_per_block(n_dofs_per_block)
+  {
+    mean_vector.reinit(n_blocks, n_dofs_per_block);
+    mean_vector.collect_sizes();
+  }
 
   void BlockPODBasis::reinit(unsigned int n_blocks, unsigned int n_dofs_per_block)
   {
@@ -195,12 +202,13 @@ namespace POD
     this->n_dofs_per_block = n_dofs_per_block;
     mean_vector.reinit(n_blocks, n_dofs_per_block);
     mean_vector.collect_sizes();
+    mean_vector = 0;
   }
 
   unsigned int BlockPODBasis::get_n_pod_vectors() const
-    {
-      return singular_values.size();
-    }
+  {
+    return singular_values.size();
+  }
 
   void BlockPODBasis::project_load_vector(dealii::BlockVector<double> &load_vector,
                                           dealii::BlockVector<double> &pod_load_vector) const
@@ -210,21 +218,9 @@ namespace POD
 
   void BlockPODBasis::project_to_fe(const dealii::BlockVector<double> &pod_vector,
                                     dealii::BlockVector<double> &fe_vector) const
-    {
-
-    }
-
-  class PODBasis
   {
-  public:
-    std::vector<dealii::Vector<double>> vectors;
-    std::vector<double> singular_values;
-    unsigned int get_num_pod_vectors() const;
-    void project_load_vector(dealii::Vector<double> &load_vector,
-                             dealii::Vector<double> &pod_load_vector);
-    void project_to_fe(const dealii::Vector<double> &pod_vector,
-                       dealii::Vector<double> &fe_vector) const;
-  };
+
+  }
 
   unsigned int PODBasis::get_num_pod_vectors() const
   {
