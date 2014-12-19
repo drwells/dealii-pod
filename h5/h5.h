@@ -39,6 +39,7 @@ namespace H5
     unsigned int n_rows = data.size()/n_blocks;
     Assert(data.size() % n_blocks == 0, dealii::ExcInternalError());
     block_vector.reinit(n_blocks, data.size()/n_blocks);
+    block_vector.collect_sizes();
 
     // HDF5 copies data in row-major order, so undo that here.
     std::vector<dealii::Vector<double>*> blocks;
@@ -94,6 +95,7 @@ namespace H5
     H5Gget_num_objs(file_id, n_obj.data());
     hsize_t n_blocks = n_obj[0];
     block_vector.reinit(n_blocks);
+    block_vector.collect_sizes();
 
     for (unsigned int i = 0; i < n_blocks; ++i)
       {
@@ -141,7 +143,6 @@ namespace H5
                    &(block_vector.block(i)[0]));
           H5Dclose(dataset_id);
           H5Sclose(dataspace_id);
-
         }
       H5Fclose(file_id);
     }
