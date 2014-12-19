@@ -12,7 +12,7 @@ SET(TARGET_SRC
   ../pod/pod.h
   ../h5/h5.h
   )
-SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -fopenmp -O3 -fmax-errors=3")
 
 # Usually, you will not need to modify anything beyond this point...
 
