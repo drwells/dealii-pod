@@ -3,7 +3,7 @@
 ##
 
 # Set the name of the project and target:
-SET(TARGET "nstest")
+SET(TARGET "rom")
 
 # Declare all source files the target consists of. Here, this is only
 # the one step-X.cc file, but as you expand your project you may wish
@@ -17,11 +17,17 @@ SET(TARGET "nstest")
 # page of the documentation.
 SET(TARGET_SRC
   ${TARGET}.cc
-  ns.cc
   ns.h
+  ns.cc
   )
 
-SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -g -ffast-math -Wall -Wextra -pedantic")
+enable_language(CXX)
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -g -ffast-math -Wall")
+
+find_package(OpenMP)
+if (OPENMP_FOUND)
+    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+endif()
 
 # Usually, you will not need to modify anything beyond this point...
 
