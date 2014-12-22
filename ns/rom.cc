@@ -327,29 +327,6 @@ namespace NavierStokes
     convection_matrix_1.vmult(temp, src);
     dst -= temp;
     dst += mean_contribution_vector;
-    
-    // for debug: print contributions.
-//     Vector<double> laplace_contribution(n_pod_dofs);
-//     laplace_matrix.vmult(laplace_contribution, src);
-//     laplace_contribution *= -1.0/reynolds_n;
-//     Vector<double> boundary_contribution(n_pod_dofs);
-//     boundary_matrix.vmult(boundary_contribution, src);
-//     boundary_contribution *= 1.0/reynolds_n;
-//     Vector<double> convection_contribution(n_pod_dofs);
-//     convection_matrix_0.vmult(convection_contribution, src);
-//     convection_matrix_1.vmult_add(convection_contribution, src);
-//     convection_contribution *= -1.0;
-//     
-//     std::cout << "laplace, boundary, convection, and mean:" << std::endl;
-//     laplace_contribution.print(std::cout);
-//     boundary_contribution.print(std::cout);
-//     convection_contribution.print(std::cout);
-//     mean_contribution_vector.print(std::cout);
-//     std::cout << "sum of contributions: " << std::endl;
-//     laplace_contribution += boundary_contribution;
-//     laplace_contribution += convection_contribution;
-//     laplace_contribution += mean_contribution_vector;
-//     laplace_contribution.print(std::cout);
 
     // this could probably be parallelized with something like
     // #pragma omp parallel
@@ -359,18 +336,11 @@ namespace NavierStokes
     // ...
     // }
     // }
-//     Vector<double> nonlinearity_contribution(n_pod_dofs);
     for (unsigned int pod_vector_n = 0; pod_vector_n < n_pod_dofs; ++pod_vector_n)
       {
         nonlinearity[pod_vector_n].vmult(temp, src);
         dst(pod_vector_n) -= temp * src;
-//         nonlinearity_contribution(pod_vector_n) -= temp * src;
       }
-//     std::cout << "nonlinearity contribution:" << std::endl;
-//     nonlinearity_contribution.print(std::cout);
-//     std::cout << "total contribution:" << std::endl;
-//     laplace_contribution += nonlinearity_contribution;
-//     laplace_contribution.print(std::cout);
 
     if (!is_mass_matrix_factorized)
       {
