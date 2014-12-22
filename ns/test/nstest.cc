@@ -8,8 +8,12 @@
 
 #include <deal.II/grid/grid_generator.h>
 
+#include <deal.II/lac/compressed_sparsity_pattern.h>
 #include <deal.II/lac/block_vector.h>
+#include <deal.II/lac/sparse_matrix.h>
 #include <deal.II/lac/vector.h>
+
+#include <deal.II/numerics/matrix_tools.h>
 
 #include <algorithm>
 #include <cmath>
@@ -38,7 +42,7 @@ namespace POD
           }
         return result;
       }
-      
+    private:
       Tensor<1, dim, int> orders;
     };
 
@@ -74,17 +78,35 @@ int main(int argc, char **argv)
 {
   Triangulation<dim> triangulation;
   GridGenerator::hyper_cube (triangulation, -1, 1);
-  triangulation.refine_global (6);
+  triangulation.refine_global (3);
   DoFHandler<dim> dof_handler (triangulation);
   Tensor<1, dim, int> orders;
-  FE_Q<dim> fe (3); // TODO this crashes > 1
-  QGauss<dim> quadrature (6);
-  FEValues<dim> fe_values(fe, quadrature, update_values | update_gradients 
-  | update_JxW_values);
-  
+  FE_Q<dim> fe (4);
+  QGauss<dim> quad (5);
+  FEValues<dim> fe_values(fe, quad, update_values | update_gradients
+                          | update_JxW_values);
+
   dof_handler.distribute_dofs(fe);
   std::cout << "DoFs: " << dof_handler.n_dofs() << std::endl;
+  const unsigned int outflow_label = 1;
+  typename DoFHandler<dim>::active_cell_iterator
+  cell = dof_handler.begin_active(),
+  endc = dof_handler.end();
+  for (; cell != endc; ++cell)
+    {
+      for (unsigned int face_n = 0; face_n < GeometryInfo<dim>::faces_per_cell; ++face_n)
+        {
+          if (cell->face(face_n)->at_boundary())
+            {
+              if (std::abs(cell->face(face_n)->center()[0] - 1.0) < 1.0e-10)
+                {
+                  cell->face(face_n)->set_boundary_indicator(outflow_label);
+                }
+            }
+        }
+    }
 
+  // test the trilinearity.
   unsigned int n_vectors = 3;
   std::vector<BlockVector<double>> chebyshev_vectors;
   for (unsigned int i = 0; i < n_vectors; ++i)
@@ -96,20 +118,36 @@ int main(int argc, char **argv)
       BlockVector<double> chebyshev_vector(2);
       get_chebyshev_vector(orders, dof_handler, fe_values, chebyshev_vector.block(0));
       chebyshev_vector.block(1) = chebyshev_vector.block(0);
-      //chebyshev_vector.block(1) = 0.0;
       chebyshev_vector.collect_sizes();
       chebyshev_vectors.push_back(std::move(chebyshev_vector));
       std::cout << "function order = " << orders << std::endl;
     }
 
-  double result = trilinearity_term(fe,
-                                    quadrature,
+  double result = trilinearity_term(quad,
                                     dof_handler,
                                     chebyshev_vectors[0],
                                     chebyshev_vectors[1],
                                     chebyshev_vectors[2]);
 
   std::cout << "nonlinearity entry is " << result << std::endl;
+
+  // test the boundary matrix.
+  QGauss<dim - 1> face_quad(5);
+  CompressedSparsityPattern c_sparsity(dof_handler.n_dofs());
+  DoFTools::make_sparsity_pattern(dof_handler, c_sparsity);
+  SparsityPattern sparsity_pattern;
+  sparsity_pattern.copy_from(c_sparsity);
+
+  SparseMatrix<double> boundary_matrix(sparsity_pattern);
+  SparseMatrix<double> mass_matrix(sparsity_pattern);
+  // MatrixTools::create_laplace_matrix(dof_handler, quad, mass_matrix);
+  create_boundary_matrix(dof_handler, face_quad, outflow_label, boundary_matrix);
+
+  Vector<double> temp(chebyshev_vectors[0].block(0).size());
+  boundary_matrix.vmult(temp, chebyshev_vectors[1].block(0));
+  std::cout << "boundary integral value: "
+            << chebyshev_vectors[0].block(0) * temp
+            << std::endl;
 
   // to destroy the pointer from dof_handler to fe:
   dof_handler.clear();
