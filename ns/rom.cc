@@ -275,10 +275,12 @@ namespace NavierStokes
           // an OMP parallel for loop could *probably* be put here.
           for (unsigned int j = 0; j < n_pod_dofs; ++j)
             {
-              convection_matrix_0(i, j) = trilinearity_term(
-                  quad, dof_handler, pod_vectors.at(i), mean_vector, pod_vectors.at(j));
-              convection_matrix_1(i, j) = trilinearity_term(
-                  quad, dof_handler, pod_vectors.at(i), pod_vectors.at(j), mean_vector);
+              convection_matrix_0(i, j) =
+                trilinearity_term(quad, dof_handler, pod_vectors.at(i),
+                                  mean_vector, pod_vectors.at(j));
+              convection_matrix_1(i, j) =
+                trilinearity_term(quad, dof_handler, pod_vectors.at(i),
+                                  pod_vectors.at(j), mean_vector);
             }
         }
     }
@@ -286,8 +288,9 @@ namespace NavierStokes
     // add on the boundary contributions from the convection term here.
     for (unsigned int pod_vector_n = 0; pod_vector_n < n_pod_dofs; ++pod_vector_n)
       {
-        mean_contribution_vector(pod_vector_n) -= trilinearity_term
-        (quad, dof_handler, pod_vectors.at(pod_vector_n), mean_vector, mean_vector);
+        mean_contribution_vector(pod_vector_n) -=
+          trilinearity_term(quad, dof_handler, pod_vectors.at(pod_vector_n),
+                            mean_vector, mean_vector);
       }
   }
 
@@ -304,8 +307,9 @@ namespace NavierStokes
           {
             for (unsigned int k = 0; k < n_pod_dofs; ++k)
               {
-                nonlinearity[i](j, k) = trilinearity_term
-                (quad, dof_handler, pod_vectors.at(i), pod_vectors.at(j), pod_vectors.at(k));
+                nonlinearity[i](j, k) =
+                  trilinearity_term(quad, dof_handler, pod_vectors.at(i),
+                                    pod_vectors.at(j), pod_vectors.at(k));
               }
           }
       }
