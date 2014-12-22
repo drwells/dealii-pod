@@ -122,31 +122,35 @@ namespace POD
                                 SparseMatrix<double> &boundary_matrix)
     {
       auto &fe = dof_handler.get_fe();
-      FullMatrix<double> cell_matrix(fe.dofs_per_cell, fe.dofs_per_cell);
-      std::vector<types::global_dof_index> local_indices(fe.dofs_per_cell);
+      const unsigned int dofs_per_cell = fe.dofs_per_cell;
+      FullMatrix<double> cell_matrix(dofs_per_cell, dofs_per_cell);
+      std::vector<types::global_dof_index> local_indices(dofs_per_cell);
       FEFaceValues<dim> fe_face_values(fe, face_quad, update_values |
                                        update_gradients | update_JxW_values);
 
-      auto cell = dof_handler.begin_active(),
-           endc = dof_handler.end();
+      typename DoFHandler<dim>::active_cell_iterator
+      cell = dof_handler.begin_active(),
+      endc = dof_handler.end();
+
       for (; cell != endc; ++cell)
         {
           cell_matrix = 0;
           cell->get_dof_indices(local_indices);
 
-          for (unsigned int face = 0; face < GeometryInfo<dim>::faces_per_cell;
-               ++face)
+          for (unsigned int face_n = 0; face_n < GeometryInfo<dim>::faces_per_cell;
+               ++face_n)
             {
-              if (cell->face(face)->at_boundary()
-                  && cell->face(face)->boundary_indicator() == outflow_label)
+              if (cell->face(face_n)->at_boundary()
+                  && cell->face(face_n)->boundary_indicator() == outflow_label)
                 {
-                  fe_face_values.reinit(cell, face);
-                  for (unsigned int i = 0; i < fe.dofs_per_cell; ++i)
+                  fe_face_values.reinit(cell, face_n);
+                  for (unsigned int i = 0; i < dofs_per_cell; ++i)
                     {
-                      for (unsigned int j = 0; j < fe.dofs_per_cell; ++j)
+                      // Note that even if the jth basis function does not have
+                      // support on a face then its derivative may have support.
+                      if (fe.has_support_on_face(i, face_n))
                         {
-                          if (fe.has_support_on_face(i, face)
-                              && fe.has_support_on_face(j, face))
+                          for (unsigned int j = 0; j < dofs_per_cell; ++j)
                             {
                               for (unsigned int q = 0; q < face_quad.size(); ++q)
                                 {
@@ -160,9 +164,9 @@ namespace POD
                     }
                 }
             }
-          for (unsigned int i = 0; i < fe.dofs_per_cell; ++i)
+          for (unsigned int i = 0; i < dofs_per_cell; ++i)
             {
-              for (unsigned int j = 0; j < fe.dofs_per_cell; ++j)
+              for (unsigned int j = 0; j < dofs_per_cell; ++j)
                 {
                   boundary_matrix.add(local_indices[i], local_indices[j],
                                       cell_matrix(i, j));
