@@ -1,19 +1,21 @@
 #ifndef __deal2__pod_h
 #define __deal2__pod_h
+#include <deal.II/dofs/dof_handler.h>
+
+#include <deal.II/fe/fe_system.h>
+
 #include <deal.II/lac/lapack_full_matrix.h>
-#include <deal.II/lac/petsc_full_matrix.h>
-#include <deal.II/lac/petsc_matrix_free.h>
-#include <deal.II/lac/petsc_sparse_matrix.h>
-#include <deal.II/lac/petsc_vector_base.h>
-#include <deal.II/lac/slepc_solver.h>
 #include <deal.II/lac/sparse_matrix.h>
 #include <deal.II/lac/block_vector.h>
 #include <deal.II/lac/vector.h>
 
+#include <deal.II/numerics/data_out.h>
+
 #include <algorithm>
 #include <cmath>
 #include <complex>
-#include <map>
+#include <iostream>
+#include <memory>
 #include <vector>
 
 #include "../h5/h5.h"

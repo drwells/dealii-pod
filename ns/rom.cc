@@ -18,22 +18,13 @@
  * Author: David Wells, Virginia Tech, 2014
  */
 
-#include <deal.II/base/utilities.h>
 #include <deal.II/base/quadrature_lib.h>
-#include <deal.II/base/function.h>
-#include <deal.II/base/logstream.h>
 
 #include <deal.II/dofs/dof_handler.h>
-#include <deal.II/dofs/dof_accessor.h>
 #include <deal.II/dofs/dof_tools.h>
 #include <deal.II/dofs/dof_renumbering.h>
 
 #include <deal.II/grid/tria.h>
-#include <deal.II/grid/grid_generator.h>
-#include <deal.II/grid/grid_refinement.h>
-#include <deal.II/grid/grid_out.h>
-#include <deal.II/grid/tria_accessor.h>
-#include <deal.II/grid/tria_iterator.h>
 
 #include <deal.II/lac/block_vector.h>
 #include <deal.II/lac/vector.h>
@@ -43,11 +34,8 @@
 #include <deal.II/lac/lapack_full_matrix.h>
 
 #include <deal.II/fe/fe_q.h>
-#include <deal.II/fe/fe_system.h>
 #include <deal.II/fe/fe_values.h>
 
-#include <deal.II/numerics/data_out.h>
-#include <deal.II/numerics/vector_tools.h>
 #include <deal.II/numerics/matrix_tools.h>
 
 #include <deal.II/bundled/boost/archive/text_iarchive.hpp>
@@ -55,11 +43,9 @@
 #include <deal.II/dofs/dof_faces.h>
 #include <deal.II/dofs/dof_levels.h>
 
-#include <array>
 #include <fstream>
 #include <iostream>
 #include <glob.h>
-#include <limits>
 #include <memory>
 
 #include "../h5/h5.h"
