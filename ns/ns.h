@@ -18,26 +18,34 @@
 #include <deal.II/fe/fe_values.h>
 
 #include <array>
+#include <iostream>
 #include <limits>
 #include <vector>
 
+#include "../ode/ode.h"
 
 using namespace dealii;
 namespace POD
 {
   constexpr double NaN = std::numeric_limits<double>::quiet_NaN();
+
+
   namespace NavierStokes
   {
-    void setup_reduced_matrix (const std::vector<BlockVector<double>> &pod_vectors,
-                               const SparseMatrix<double> &full_matrix,
-                               FullMatrix<double> &rom_matrix);
-
-
-    void setup_reduced_matrix (const std::vector<BlockVector<double>> &pod_vectors,
-                               const SparseMatrix<double> &full_matrix,
-                               const std::vector<unsigned int> dims,
-                               FullMatrix<double> &rom_matrix);
-
+    class NavierStokesRHS : public ODE::NonlinearOperatorBase
+    {
+    public:
+      NavierStokesRHS(FullMatrix<double> linear_operator,
+                      FullMatrix<double> mass_matrix,
+                      std::vector<FullMatrix<double>> nonlinear_operator,
+                      Vector<double> mean_contribution);
+      void apply(Vector<double> &dst, const Vector<double> &src) override;
+    private:
+      FullMatrix<double> linear_operator;
+      LAPACKFullMatrix<double> factorized_mass_matrix;
+      std::vector<FullMatrix<double>> nonlinear_operator;
+      Vector<double> mean_contribution;
+    };
 
     template<int dim>
     double trilinearity_term(

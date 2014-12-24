@@ -19,6 +19,10 @@ SET(TARGET_SRC
   ${TARGET}.cc
   ns.h
   ns.cc
+  ../pod/pod.h
+  ../pod/pod.cc
+  ../ode/ode.h
+  ../ode/ode.cc
   )
 
 enable_language(CXX)

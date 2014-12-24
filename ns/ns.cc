@@ -4,42 +4,43 @@ namespace POD
 {
   namespace NavierStokes
   {
-    void setup_reduced_matrix (const std::vector<BlockVector<double>> &pod_vectors,
-                               const SparseMatrix<double> &full_matrix,
-                               FullMatrix<double> &rom_matrix)
+
+    NavierStokesRHS::NavierStokesRHS(FullMatrix<double> linear_operator,
+                                     FullMatrix<double> mass_matrix,
+                                     std::vector<FullMatrix<double>> nonlinear_operator,
+                                     Vector<double> mean_contribution) :
+      NonlinearOperatorBase(),
+      linear_operator {linear_operator},
+      nonlinear_operator {nonlinear_operator},
+      mean_contribution {mean_contribution}
     {
-      std::vector<unsigned int> dims;
-      for (unsigned int i = 0; i < pod_vectors.at(0).n_blocks(); ++i)
-        {
-          dims.push_back(i);
-        }
-      setup_reduced_matrix(pod_vectors, full_matrix, dims, rom_matrix);
+      factorized_mass_matrix.reinit(mass_matrix.m());
+      factorized_mass_matrix = mass_matrix;
+      factorized_mass_matrix.compute_lu_factorization();
     }
 
-
-    void setup_reduced_matrix (const std::vector<BlockVector<double>> &pod_vectors,
-                               const SparseMatrix<double> &full_matrix,
-                               const std::vector<unsigned int> dims,
-                               FullMatrix<double> &rom_matrix)
+    void NavierStokesRHS::apply(Vector<double> &dst, const Vector<double> &src)
     {
-      const unsigned int n_dofs = pod_vectors[0].block(0).size();
-      const unsigned int n_pod_dofs = pod_vectors.size();
-      rom_matrix.reinit(n_pod_dofs, n_pod_dofs);
-      rom_matrix = 0.0;
+      const unsigned int n_dofs = src.size();
+      linear_operator.vmult(dst, src);
+      dst += mean_contribution;
+
       Vector<double> temp(n_dofs);
-      for (auto dim_n : dims)
+      // this could probably be parallelized with something like
+      // #pragma omp parallel
+      // {
+      // Vector<double> temp;
+      // #pragma omp parallel for
+      // ...
+      // }
+      // }
+      for (unsigned int pod_vector_n = 0; pod_vector_n < n_dofs; ++pod_vector_n)
         {
-          for (unsigned int row = 0; row < n_pod_dofs; ++row)
-            {
-              auto &left_vector = pod_vectors[row].block(dim_n);
-              for (unsigned int column = 0; column < n_pod_dofs; ++column)
-                {
-                  auto &right_vector = pod_vectors[column].block(dim_n);
-                  full_matrix.vmult(temp, right_vector);
-                  rom_matrix(row, column) += left_vector*temp;
-                }
-            }
+          nonlinear_operator[pod_vector_n].vmult(temp, src);
+          dst(pod_vector_n) -= temp * src;
         }
+
+      factorized_mass_matrix.apply_lu_factorization(dst, false);
     }
   }
 }

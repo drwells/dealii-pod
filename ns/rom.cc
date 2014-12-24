@@ -60,8 +60,11 @@
 #include <iostream>
 #include <glob.h>
 #include <limits>
+#include <memory>
 
 #include "../h5/h5.h"
+#include "../pod/pod.h"
+#include "../ode/ode.h"
 #include "ns.h"
 
 constexpr int outflow_label = 3;
@@ -76,11 +79,10 @@ constexpr double time_step = 5.0e-5;
 namespace NavierStokes
 {
   using namespace dealii;
-
-
   using POD::NavierStokes::trilinearity_term;
-  using POD::NavierStokes::setup_reduced_matrix;
   using POD::NavierStokes::create_boundary_matrix;
+
+
   template<int dim>
   class ROM
   {
@@ -93,7 +95,6 @@ namespace NavierStokes
     void load_vectors();
     void setup_linear();
     void setup_nonlinear();
-    void evaluate_rhs(Vector<double> &dst, const Vector<double> &src);
     void time_iterate();
     void output_results();
 
@@ -104,22 +105,16 @@ namespace NavierStokes
     bool                             renumber;
 
     FullMatrix<double>               mass_matrix;
-    FullMatrix<double>               laplace_matrix;
-    FullMatrix<double>               boundary_matrix;
-    FullMatrix<double>               convection_matrix_0;
-    FullMatrix<double>               convection_matrix_1;
-
-    LAPACKFullMatrix<double>         mass_matrix_factorized;
-    bool                             is_mass_matrix_factorized;
+    FullMatrix<double>               linear_operator;
+    std::vector<FullMatrix<double>>  nonlinear_operator;
+    Vector<double>                   mean_contribution_vector;
 
     unsigned int                     n_dofs;
     unsigned int                     n_pod_dofs;
 
     std::vector<BlockVector<double>> pod_vectors;
     BlockVector<double>              mean_vector;
-    Vector<double>                   mean_contribution_vector;
     Vector<double>                   solution;
-    std::vector<FullMatrix<double>>  nonlinearity;
 
     double                           time;
     unsigned int                     timestep_number;
@@ -136,7 +131,6 @@ namespace NavierStokes
     fe(2), // TODO don't hardcode this: rely on some input file.
     quad(fe.degree + 3),
     renumber(renumber),
-    is_mass_matrix_factorized(false),
     time(initial_time),
     timestep_number(0),
     // TODO unhardcode this.
@@ -183,7 +177,6 @@ namespace NavierStokes
                                     (file_name.substr(start_number, end_number - start_number));
         H5::load_block_vector(file_name, pod_vector);
         pod_vectors[pod_vector_n] = std::move(pod_vector);
-        std::cout << "index: " << pod_vector_n << " file name: " << file_name << std::endl;
       }
     H5::load_block_vector(mean_vector_file_name, mean_vector);
     n_dofs = pod_vectors[0].block(0).size();
@@ -195,6 +188,10 @@ namespace NavierStokes
   template<int dim>
   void ROM<dim>::setup_linear()
   {
+    FullMatrix<double> laplace_matrix;
+    FullMatrix<double> boundary_matrix;
+    FullMatrix<double> convection_matrix_0;
+    FullMatrix<double> convection_matrix_1;
     std::cout << "Number of degrees of freedom: "
               << dof_handler.n_dofs()
               << std::endl;
@@ -207,14 +204,11 @@ namespace NavierStokes
     {
       SparseMatrix<double> full_mass_matrix(sparsity_pattern);
       MatrixCreator::create_mass_matrix(dof_handler, quad, full_mass_matrix);
-      setup_reduced_matrix(pod_vectors, full_mass_matrix, mass_matrix);
+      POD::create_reduced_matrix(pod_vectors, full_mass_matrix, mass_matrix);
 
       BlockVector<double> centered_initial;
       std::string initial("initial.h5");
       H5::load_block_vector(initial, centered_initial);
-      // Since this problem does not have a forcing term (and, in fact, the
-      // initial solution is discontinuous) we should start from the mean, or
-      // zero fluctuating part.
       solution.reinit(n_pod_dofs);
       centered_initial -= mean_vector;
       for (unsigned int dim_n = 0; dim_n < dim; ++dim_n)
@@ -233,7 +227,7 @@ namespace NavierStokes
       laplace_matrix.reinit(n_pod_dofs, n_pod_dofs);
       SparseMatrix<double> full_laplace_matrix(sparsity_pattern);
       MatrixCreator::create_laplace_matrix(dof_handler, quad, full_laplace_matrix);
-      setup_reduced_matrix(pod_vectors, full_laplace_matrix, laplace_matrix);
+      POD::create_reduced_matrix(pod_vectors, full_laplace_matrix, laplace_matrix);
 
       mean_contribution_vector.reinit(n_pod_dofs);
       for (unsigned int dim_n = 0; dim_n < dim; ++dim_n)
@@ -255,7 +249,7 @@ namespace NavierStokes
       create_boundary_matrix(dof_handler, face_quad, outflow_label, full_boundary_matrix);
 
       std::vector<unsigned int> dims {0};
-      setup_reduced_matrix(pod_vectors, full_boundary_matrix, dims, boundary_matrix);
+      POD::create_reduced_matrix(pod_vectors, full_boundary_matrix, dims, boundary_matrix);
 
       Vector<double> temp(n_dofs);
       full_boundary_matrix.vmult(temp, mean_vector.block(0));
@@ -292,6 +286,12 @@ namespace NavierStokes
           trilinearity_term(quad, dof_handler, pod_vectors.at(pod_vector_n),
                             mean_vector, mean_vector);
       }
+
+    linear_operator.reinit(n_pod_dofs, n_pod_dofs);
+    linear_operator.add(-1.0/reynolds_n, laplace_matrix);
+    linear_operator.add(1.0/reynolds_n, boundary_matrix);
+    linear_operator.add(-1.0, convection_matrix_0);
+    linear_operator.add(-1.0, convection_matrix_1);
   }
 
 
@@ -300,14 +300,16 @@ namespace NavierStokes
   {
     for (unsigned int i = 0; i < n_pod_dofs; ++i)
       {
-        nonlinearity.emplace_back(n_pod_dofs);
-        std::cout << "nonlinearity.size() = " << nonlinearity.size() << std::endl;
+        nonlinear_operator.emplace_back(n_pod_dofs);
+        std::cout << "nonlinearity.size() = "
+                  << nonlinear_operator.size()
+                  << std::endl;
         #pragma omp parallel for
         for (unsigned int j = 0; j < n_pod_dofs; ++j)
           {
             for (unsigned int k = 0; k < n_pod_dofs; ++k)
               {
-                nonlinearity[i](j, k) =
+                nonlinear_operator[i](j, k) =
                   trilinearity_term(quad, dof_handler, pod_vectors.at(i),
                                     pod_vectors.at(j), pod_vectors.at(k));
               }
@@ -317,85 +319,24 @@ namespace NavierStokes
   }
 
 
-  template<int dim>
-  void ROM<dim>::evaluate_rhs(Vector<double> &dst, const Vector<double> &src)
-  {
-    dst = 0.0;
-    Vector<double> temp(n_pod_dofs);
-    laplace_matrix.vmult(temp, src);
-    dst.add(-1.0/reynolds_n, temp);
-    boundary_matrix.vmult(temp, src);
-    dst.add(1.0/reynolds_n, temp);
-    convection_matrix_0.vmult(temp, src);
-    dst -= temp;
-    convection_matrix_1.vmult(temp, src);
-    dst -= temp;
-    dst += mean_contribution_vector;
-
-    // this could probably be parallelized with something like
-    // #pragma omp parallel
-    // {
-    // Vector<double> temp;
-    // #pragma omp parallel for
-    // ...
-    // }
-    // }
-    for (unsigned int pod_vector_n = 0; pod_vector_n < n_pod_dofs; ++pod_vector_n)
-      {
-        nonlinearity[pod_vector_n].vmult(temp, src);
-        dst(pod_vector_n) -= temp * src;
-      }
-
-    if (!is_mass_matrix_factorized)
-      {
-        mass_matrix_factorized.reinit(n_pod_dofs, n_pod_dofs);
-        mass_matrix_factorized = mass_matrix;
-        mass_matrix_factorized.compute_lu_factorization();
-        is_mass_matrix_factorized = true;
-      }
-    mass_matrix_factorized.apply_lu_factorization(dst, false);
-  }
-
-
-  template<int dim>
+  export template<int dim>
   void ROM<dim>::time_iterate()
   {
-    // classic RK4
-    Vector<double> temp(n_pod_dofs);
-    Vector<double> step_1(n_pod_dofs);
-    Vector<double> step_2(n_pod_dofs);
-    Vector<double> step_3(n_pod_dofs);
-    Vector<double> step_4(n_pod_dofs);
-
+    Vector<double> old_solution(solution);
+    std::unique_ptr<POD::NavierStokes::NavierStokesRHS>
+    rhs_function(new POD::NavierStokes::NavierStokesRHS(linear_operator,
+                                                        mass_matrix,
+                                                        nonlinear_operator,
+                                                        mean_contribution_vector));
+    ODE::RungeKutta4 rk_method(std::move(rhs_function));
     while (time < final_time)
       {
-        temp = solution;
-        evaluate_rhs(step_1, temp);
-        temp = solution;
-        temp.add(0.5*time_step, step_1);
-        evaluate_rhs(step_2, temp);
-        temp = solution;
-        temp.add(0.5*time_step, step_2);
-        evaluate_rhs(step_3, temp);
-        temp = solution;
-        temp.add(time_step, step_3);
-        evaluate_rhs(step_4, temp);
-
-        Vector<double> update(n_pod_dofs);
-        update.add(time_step/6.0, step_1);
-        update.add(time_step/3.0, step_2);
-        update.add(time_step/3.0, step_3);
-        update.add(time_step/6.0, step_4);
-        solution += update;
+        old_solution = solution;
+        rk_method.step(time_step, old_solution, solution);
 
         if (timestep_number % output_interval == 0)
           {
             output_results();
-            std::cout << "solution and update norms : "
-                      << solution.l2_norm()
-                      << " and "
-                      << update.l2_norm()
-                      << std::endl;
           }
         ++timestep_number;
         time += time_step;

@@ -18,45 +18,9 @@
 
 #include "../h5/h5.h"
 
+using namespace dealii;
 namespace POD
 {
-  using namespace dealii::PETScWrappers;
-  class EigenvalueMethod : public MatrixFree
-  // Class for computing POD vectors by the eigenproblem
-  //
-  // Y^T Y M v = l v
-  //
-  // where Y is the matrix of snapshots (each row is one snapshot), M is the
-  // mass matrix, v is a POD vector, and l is a singular value.
-  //
-  // Perhaps this was a premature optimization, but I did not use the usual
-  // convention of one snapshot per column to greatly speed up the reading of
-  // the snapshot matrix.
-  {
-  public:
-    EigenvalueMethod(dealii::SparseMatrix<double> &mass_matrix,
-                     dealii::FullMatrix<double> &snapshots,
-                     unsigned int n_blocks);
-    dealii::SparseMatrix<double> &mass_matrix;
-    dealii::FullMatrix<double> &snapshots;
-    unsigned int n_blocks;
-    void vmult(VectorBase &dst, const VectorBase &src) const;
-    void vmult_add(VectorBase &dst, const VectorBase &src) const;
-    void Tvmult(VectorBase &dst, const VectorBase &src) const;
-    void Tvmult_add(VectorBase &dst, const VectorBase &src) const;
-  };
-
-  class PODBasis
-  {
-  public:
-    std::map<int, dealii::Vector<double>> vectors;
-    std::vector<double> singular_values;
-    unsigned int get_num_pod_vectors() const;
-    void project_load_vector(dealii::Vector<double> &, dealii::Vector<double> &);
-    void project_to_fe(const dealii::Vector<double> &pod_vector,
-                       dealii::Vector<double> &fe_vector) const;
-  };
-
   class BlockPODBasis
   {
   public:
@@ -78,20 +42,19 @@ namespace POD
     unsigned int n_dofs_per_block;
   };
 
-  void copy_vector(VectorBase &src, unsigned int start_src, unsigned int start_dst,
-                   unsigned int total, VectorBase &dst);
-
-  void pod_basis(dealii::SparseMatrix<double> &mass_matrix,
-                 dealii::FullMatrix<double> &snapshot_matrix,
-                 const unsigned int num_pod_vectors,
-                 PODBasis &result);
-
-  void reduced_matrix(dealii::SparseMatrix<double> &mass_matrix,
-                      PODBasis &pod_basis, dealii::FullMatrix<double> &pod_mass_matrix);
-
   void method_of_snapshots(dealii::SparseMatrix<double> &mass_matrix,
                            std::vector<std::string> &snapshot_file_names,
                            BlockPODBasis &pod_basis);
+
+  void create_reduced_matrix(const std::vector<BlockVector<double>> &pod_vectors,
+                             const SparseMatrix<double> &full_matrix,
+                             FullMatrix<double> &rom_matrix);
+
+
+  void create_reduced_matrix(const std::vector<BlockVector<double>> &pod_vectors,
+                             const SparseMatrix<double> &full_matrix,
+                             const std::vector<unsigned int> dims,
+                             FullMatrix<double> &rom_matrix);
 
 }
 #endif
