@@ -87,7 +87,7 @@ namespace NavierStokes
     FE_Q<dim>                        fe;
     QGauss<dim>                      quad;
     Triangulation<dim>               triangulation;
-    DoFHandler<dim>                  dof_handler;
+    std::shared_ptr<DoFHandler<dim>> dof_handler;
     bool                             renumber;
 
     FullMatrix<double>               mass_matrix;
@@ -98,16 +98,14 @@ namespace NavierStokes
     unsigned int                     n_dofs;
     unsigned int                     n_pod_dofs;
 
-    std::vector<BlockVector<double>> pod_vectors;
-    BlockVector<double>              mean_vector;
+    std::shared_ptr<std::vector<BlockVector<double>>> pod_vectors;
+    std::shared_ptr<BlockVector<double>>              mean_vector;
     Vector<double>                   solution;
 
     double                           time;
     unsigned int                     timestep_number;
     double                           reynolds_n;
 
-    std::vector<XDMFEntry>           xdmf_entries;
-    bool                             write_mesh;
   };
 
 
@@ -116,13 +114,14 @@ namespace NavierStokes
     :
     fe(2), // TODO don't hardcode this: rely on some input file.
     quad(fe.degree + 3),
+    dof_handler {new DoFHandler<dim>},
     renumber(renumber),
+    pod_vectors {new std::vector<BlockVector<double>>},
+    mean_vector {new BlockVector<double>},
     time(initial_time),
     timestep_number(0),
-    // TODO unhardcode this.
-    reynolds_n(re),
-    write_mesh(true)
-  {}
+    reynolds_n(re) // TODO unhardcode this.
+    {}
 
 
   template<int dim>
@@ -134,11 +133,11 @@ namespace NavierStokes
     std::istream in_stream (&file_buffer);
     boost::archive::text_iarchive archive(in_stream);
     archive >> triangulation;
-    dof_handler.initialize(triangulation, fe);
+    dof_handler->initialize(triangulation, fe);
     if (renumber)
       {
         std::cout << "renumbering." << std::endl;
-        DoFRenumbering::boost::Cuthill_McKee (dof_handler);
+        DoFRenumbering::boost::Cuthill_McKee (*dof_handler);
       }
   }
 
@@ -152,7 +151,7 @@ namespace NavierStokes
 
     glob_t glob_result;
     glob(pod_vector_glob.c_str(), GLOB_TILDE, nullptr, &glob_result);
-    pod_vectors.resize(glob_result.gl_pathc);
+    pod_vectors->resize(glob_result.gl_pathc);
     for (unsigned int i = 0; i < glob_result.gl_pathc; ++i)
       {
         BlockVector<double> pod_vector;
@@ -162,11 +161,11 @@ namespace NavierStokes
         unsigned int pod_vector_n = Utilities::string_to_int
                                     (file_name.substr(start_number, end_number - start_number));
         H5::load_block_vector(file_name, pod_vector);
-        pod_vectors[pod_vector_n] = std::move(pod_vector);
+        pod_vectors->at(pod_vector_n) = std::move(pod_vector);
       }
-    H5::load_block_vector(mean_vector_file_name, mean_vector);
-    n_dofs = pod_vectors[0].block(0).size();
-    n_pod_dofs = pod_vectors.size();
+    H5::load_block_vector(mean_vector_file_name, *mean_vector);
+    n_dofs = pod_vectors->at(0).block(0).size();
+    n_pod_dofs = pod_vectors->size();
     globfree(&glob_result);
   }
 
@@ -179,31 +178,31 @@ namespace NavierStokes
     FullMatrix<double> convection_matrix_0;
     FullMatrix<double> convection_matrix_1;
     std::cout << "Number of degrees of freedom: "
-              << dof_handler.n_dofs()
+              << dof_handler->n_dofs()
               << std::endl;
 
-    CompressedSparsityPattern c_sparsity(dof_handler.n_dofs());
-    DoFTools::make_sparsity_pattern(dof_handler, c_sparsity);
+    CompressedSparsityPattern c_sparsity(dof_handler->n_dofs());
+    DoFTools::make_sparsity_pattern(*dof_handler, c_sparsity);
     SparsityPattern sparsity_pattern;
     sparsity_pattern.copy_from(c_sparsity);
 
     {
       SparseMatrix<double> full_mass_matrix(sparsity_pattern);
-      MatrixCreator::create_mass_matrix(dof_handler, quad, full_mass_matrix);
-      POD::create_reduced_matrix(pod_vectors, full_mass_matrix, mass_matrix);
+      MatrixCreator::create_mass_matrix(*dof_handler, quad, full_mass_matrix);
+      POD::create_reduced_matrix(*pod_vectors, full_mass_matrix, mass_matrix);
 
       BlockVector<double> centered_initial;
       std::string initial("initial.h5");
       H5::load_block_vector(initial, centered_initial);
       solution.reinit(n_pod_dofs);
-      centered_initial -= mean_vector;
+      centered_initial -= *mean_vector;
       for (unsigned int dim_n = 0; dim_n < dim; ++dim_n)
         {
           Vector<double> temp(n_dofs);
           for (unsigned int pod_vector_n = 0; pod_vector_n < n_pod_dofs; ++ pod_vector_n)
             {
               full_mass_matrix.vmult(temp, centered_initial.block(dim_n));
-              solution[pod_vector_n] += temp * pod_vectors[pod_vector_n].block(dim_n);
+              solution[pod_vector_n] += temp * pod_vectors->at(pod_vector_n).block(dim_n);
             }
         }
     }
@@ -212,18 +211,18 @@ namespace NavierStokes
     {
       laplace_matrix.reinit(n_pod_dofs, n_pod_dofs);
       SparseMatrix<double> full_laplace_matrix(sparsity_pattern);
-      MatrixCreator::create_laplace_matrix(dof_handler, quad, full_laplace_matrix);
-      POD::create_reduced_matrix(pod_vectors, full_laplace_matrix, laplace_matrix);
+      MatrixCreator::create_laplace_matrix(*dof_handler, quad, full_laplace_matrix);
+      POD::create_reduced_matrix(*pod_vectors, full_laplace_matrix, laplace_matrix);
 
       mean_contribution_vector.reinit(n_pod_dofs);
       for (unsigned int dim_n = 0; dim_n < dim; ++dim_n)
         {
           Vector<double> temp(n_dofs);
-          full_laplace_matrix.vmult(temp, mean_vector.block(dim_n));
+          full_laplace_matrix.vmult(temp, mean_vector->block(dim_n));
           for (unsigned int pod_vector_n = 0; pod_vector_n < n_pod_dofs; ++pod_vector_n)
             {
               mean_contribution_vector(pod_vector_n) -=
-                1.0/reynolds_n*(temp * pod_vectors[pod_vector_n].block(dim_n));
+                1.0/reynolds_n*(temp * pod_vectors->at(pod_vector_n).block(dim_n));
             }
         }
     }
@@ -232,17 +231,17 @@ namespace NavierStokes
     {
       SparseMatrix<double> full_boundary_matrix(sparsity_pattern);
       QGauss<dim - 1> face_quad(fe.degree + 3);
-      create_boundary_matrix(dof_handler, face_quad, outflow_label, full_boundary_matrix);
+      create_boundary_matrix(*dof_handler, face_quad, outflow_label, full_boundary_matrix);
 
       std::vector<unsigned int> dims {0};
-      POD::create_reduced_matrix(pod_vectors, full_boundary_matrix, dims, boundary_matrix);
+      POD::create_reduced_matrix(*pod_vectors, full_boundary_matrix, dims, boundary_matrix);
 
       Vector<double> temp(n_dofs);
-      full_boundary_matrix.vmult(temp, mean_vector.block(0));
+      full_boundary_matrix.vmult(temp, mean_vector->block(0));
       for (unsigned int pod_vector_n = 0; pod_vector_n < n_pod_dofs; ++pod_vector_n)
         {
           mean_contribution_vector(pod_vector_n) +=
-            1.0/reynolds_n*(temp * pod_vectors[pod_vector_n].block(0));
+            1.0/reynolds_n*(temp * pod_vectors->at(pod_vector_n).block(0));
         }
     }
     std::cout << "assembled the reduced boundary matrix." << std::endl;
@@ -256,21 +255,20 @@ namespace NavierStokes
           for (unsigned int j = 0; j < n_pod_dofs; ++j)
             {
               convection_matrix_0(i, j) =
-                trilinearity_term(quad, dof_handler, pod_vectors.at(i),
-                                  mean_vector, pod_vectors.at(j));
+                trilinearity_term(quad, *dof_handler, pod_vectors->at(i),
+                                  *mean_vector, pod_vectors->at(j));
               convection_matrix_1(i, j) =
-                trilinearity_term(quad, dof_handler, pod_vectors.at(i),
-                                  pod_vectors.at(j), mean_vector);
+                trilinearity_term(quad, *dof_handler, pod_vectors->at(i),
+                                  pod_vectors->at(j), *mean_vector);
             }
         }
     }
     std::cout << "assembled the two convection matrices." << std::endl;
-    // add on the boundary contributions from the convection term here.
     for (unsigned int pod_vector_n = 0; pod_vector_n < n_pod_dofs; ++pod_vector_n)
       {
         mean_contribution_vector(pod_vector_n) -=
-          trilinearity_term(quad, dof_handler, pod_vectors.at(pod_vector_n),
-                            mean_vector, mean_vector);
+          trilinearity_term(quad, *dof_handler, pod_vectors->at(pod_vector_n),
+                            *mean_vector, *mean_vector);
       }
 
     linear_operator.reinit(n_pod_dofs, n_pod_dofs);
@@ -296,8 +294,8 @@ namespace NavierStokes
             for (unsigned int k = 0; k < n_pod_dofs; ++k)
               {
                 nonlinear_operator[i](j, k) =
-                  trilinearity_term(quad, dof_handler, pod_vectors.at(i),
-                                    pod_vectors.at(j), pod_vectors.at(k));
+                  trilinearity_term(quad, *dof_handler, pod_vectors->at(i),
+                                    pod_vectors->at(j), pod_vectors->at(k));
               }
           }
       }
@@ -333,82 +331,9 @@ namespace NavierStokes
   template<int dim>
   void ROM<dim>::output_results()
   {
-    std::string pod_file_name = "pod-solution-"
-                                + Utilities::int_to_string(timestep_number, 10)
-                                + ".h5";
-    {
-      BlockVector<double> solution_block(1, n_pod_dofs);
-      solution_block.block(0) = solution;
-      H5::save_block_vector(pod_file_name, solution_block);
-    }
-
-    BlockVector<double> fe_solution(dim, n_dofs);
-    fe_solution = mean_vector;
-    for (unsigned int i = 0; i < n_pod_dofs; ++i)
-      {
-        fe_solution.add(solution(i), pod_vectors[i]);
-      }
-
-    // save the data in a plot-friendly way too.
-    std::vector<std::string> solution_names(dim, "v");
-    std::vector<DataComponentInterpretation::DataComponentInterpretation>
-    component_interpretation
-    (dim, DataComponentInterpretation::component_is_part_of_vector);
-
-    FESystem<dim> vector_fe(fe, dim);
-    DoFHandler<dim> vector_dof_handler(triangulation);
-    vector_dof_handler.distribute_dofs(vector_fe);
-
-    dealii::Vector<double> vector_solution (vector_dof_handler.n_dofs());
-    std::vector<types::global_dof_index> loc_vector_dof_indices (vector_fe.dofs_per_cell),
-        loc_component_dof_indices (fe.dofs_per_cell);
-    typename DoFHandler<dim>::active_cell_iterator
-    vector_cell = vector_dof_handler.begin_active(),
-    vector_endc = vector_dof_handler.end(),
-    component_cell = dof_handler.begin_active();
-    for (; vector_cell != vector_endc; ++vector_cell, ++component_cell)
-      {
-        vector_cell->get_dof_indices(loc_vector_dof_indices);
-        component_cell->get_dof_indices(loc_component_dof_indices);
-        for (unsigned int j = 0; j < vector_fe.dofs_per_cell; ++j)
-          {
-            switch (vector_fe.system_to_base_index(j).first.first)
-              {
-              // TODO this is sloppy cut-and-paste from step-35
-              case 0:
-                vector_solution(loc_vector_dof_indices[j]) =
-                  fe_solution.block(vector_fe.system_to_base_index(j).first.second)
-                  (loc_component_dof_indices[vector_fe.system_to_base_index(j).second]);
-                break;
-              default:
-                ExcInternalError();
-              }
-          }
-      }
-    DataOut<dim> data_out;
-    data_out.attach_dof_handler(vector_dof_handler);
-
-    data_out.add_data_vector(vector_solution, solution_names,
-                             DataOut<dim>::type_dof_data,
-                             component_interpretation);
-    data_out.build_patches(patch_refinement);
-    std::string solution_file_name = "solution-"
-                                     + Utilities::int_to_string(timestep_number, 10) + ".h5";
-    std::string mesh_file_name = "mesh.h5";
-    std::string xdmf_filename = "solution.xdmf";
-
-    DataOutBase::DataOutFilter data_filter
-    (DataOutBase::DataOutFilterFlags(true, true));
-    data_out.write_filtered_data(data_filter);
-    data_out.write_hdf5_parallel(data_filter, write_mesh, mesh_file_name,
-                                 solution_file_name, MPI_COMM_WORLD);
-
-    // only save the mesh once.
-    write_mesh = false;
-    auto new_xdmf_entry = data_out.create_xdmf_entry
-                          (data_filter, mesh_file_name, solution_file_name, time, MPI_COMM_WORLD);
-    xdmf_entries.push_back(std::move(new_xdmf_entry));
-    data_out.write_xdmf_file(xdmf_entries, xdmf_filename, MPI_COMM_WORLD);
+    static POD::PODOutput<dim> output(dof_handler, mean_vector,
+                                      pod_vectors, "solution-");
+    output.save_solution(solution, time, timestep_number);
   }
 
 
