@@ -45,7 +45,7 @@ namespace H5
     std::vector<dealii::Vector<double>*> blocks;
     for (unsigned int j = 0; j < n_blocks; ++j)
       {
-        dealii::Vector<double>* block = &block_vector.block(j);
+        dealii::Vector<double> *block = &block_vector.block(j);
         blocks.push_back(block);
       }
 
@@ -76,7 +76,7 @@ namespace H5
     hsize_t bufsize = H5Dget_storage_size(dataset);
     std::vector<double> data(bufsize/sizeof(T));
     H5Dread(dataset, datatype, H5S_ALL, H5S_ALL, H5P_DEFAULT,
-            static_cast<void*>(data.data()));
+            static_cast<void *>(data.data()));
     as_block_vector(data, n_blocks, block_vector);
 
     H5Sclose(dataspace);
@@ -112,7 +112,7 @@ namespace H5
         hsize_t bufsize = H5Dget_storage_size(dataset);
         block_vector.block(i).reinit(bufsize/sizeof(T));
         H5Dread(dataset, datatype, H5S_ALL, H5S_ALL, H5P_DEFAULT,
-                static_cast<void*>(&(block_vector.block(i)[0])));
+                static_cast<void *>(&(block_vector.block(i)[0])));
         H5Sclose(dataspace);
         H5Tclose(datatype);
         H5Dclose(dataset);
@@ -127,24 +127,24 @@ namespace H5
   void save_block_vector(std::string file_name,
                          dealii::BlockVector<T> &block_vector)
   // Save a deal.II block vector to an HDF5 file as components a0, a1, etc.
-    {
-      hid_t file_id = H5Fcreate(file_name.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT,
-                                H5P_DEFAULT);
-      for (unsigned int i = 0; i < block_vector.n_blocks(); ++i)
-        {
-          hsize_t n_dofs[1];
-      	  n_dofs[0] = block_vector.block(i).size();
-          hid_t dataspace_id = H5Screate_simple(1, n_dofs, nullptr);
-          std::string dataset_name = "/a" + dealii::Utilities::int_to_string(i);
-          hid_t dataset_id = H5Dcreate2 (file_id, dataset_name.c_str (),
-                                         H5T_NATIVE_DOUBLE, dataspace_id,
-                                         H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-          H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT,
-                   &(block_vector.block(i)[0]));
-          H5Dclose(dataset_id);
-          H5Sclose(dataspace_id);
-        }
-      H5Fclose(file_id);
-    }
+  {
+    hid_t file_id = H5Fcreate(file_name.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT,
+                              H5P_DEFAULT);
+    for (unsigned int i = 0; i < block_vector.n_blocks(); ++i)
+      {
+        hsize_t n_dofs[1];
+        n_dofs[0] = block_vector.block(i).size();
+        hid_t dataspace_id = H5Screate_simple(1, n_dofs, nullptr);
+        std::string dataset_name = "/a" + dealii::Utilities::int_to_string(i);
+        hid_t dataset_id = H5Dcreate2 (file_id, dataset_name.c_str (),
+                                       H5T_NATIVE_DOUBLE, dataspace_id,
+                                       H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+        H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT,
+                 &(block_vector.block(i)[0]));
+        H5Dclose(dataset_id);
+        H5Sclose(dataspace_id);
+      }
+    H5Fclose(file_id);
+  }
 }
 #endif
