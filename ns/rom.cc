@@ -319,7 +319,7 @@ namespace NavierStokes
   }
 
 
-  export template<int dim>
+  template<int dim>
   void ROM<dim>::time_iterate()
   {
     Vector<double> old_solution(solution);
