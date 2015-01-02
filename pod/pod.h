@@ -161,6 +161,7 @@ namespace POD
 
   void method_of_snapshots(dealii::SparseMatrix<double> &mass_matrix,
                            std::vector<std::string> &snapshot_file_names,
+                           const unsigned int n_pod_vectors,
                            BlockPODBasis &pod_basis);
 
   void create_reduced_matrix(const std::vector<BlockVector<double>> &pod_vectors,

@@ -6,6 +6,7 @@ namespace POD
 
   void method_of_snapshots(SparseMatrix<double> &mass_matrix,
                            std::vector<std::string> &snapshot_file_names,
+                           const unsigned int n_pod_vectors,
                            BlockPODBasis &pod_basis)
   {
     BlockVector<double> block_vector;
@@ -72,8 +73,8 @@ namespace POD
         eigenvectors);
     std::cout << "computed eigenvalues and eigenvectors." << std::endl;
     std::cout << "eigenvectors size: " << eigenvectors.size() << std::endl;
-    pod_basis.singular_values.resize(0);
-    for (i = 0; i < n_snapshots; ++i)
+    pod_basis.singular_values.resize(n_pod_vectors);
+    for (i = 0; i < n_pod_vectors; ++i)
       {
         // As the matrix has provably positive real eigenvalues...
         std::complex<double> eigenvalue = correlation_matrix.eigenvalue(i);
@@ -87,12 +88,12 @@ namespace POD
                   << std::endl;
         // Assert(eigenvalue.imag() == 0.0, ExcInternalError());
         // Assert(eigenvalue.real() > 0.0, ExcInternalError());
-        pod_basis.singular_values.push_back(std::sqrt(eigenvalue.real()));
+        pod_basis.singular_values.at(i) = std::sqrt(eigenvalue.real());
       }
 
-    pod_basis.vectors.resize(n_snapshots);
+    pod_basis.vectors.resize(n_pod_vectors);
     #pragma omp parallel for
-    for (unsigned int eigenvector_n = 0; eigenvector_n < n_snapshots; ++eigenvector_n)
+    for (unsigned int eigenvector_n = 0; eigenvector_n < n_pod_vectors; ++eigenvector_n)
       {
         BlockVector<double> pod_vector(n_blocks, n_dofs_per_block);
         pod_vector.collect_sizes();
@@ -109,18 +110,18 @@ namespace POD
               }
             ++snapshot_n;
           }
-        pod_basis.vectors[eigenvector_n] = std::move(pod_vector);
+        pod_basis.vectors.at(eigenvector_n) = std::move(pod_vector);
       }
     std::reverse(pod_basis.singular_values.begin(), pod_basis.singular_values.end());
     std::reverse(pod_basis.vectors.begin(), pod_basis.vectors.end());
 
-    for (unsigned int pod_vector_n = 0; pod_vector_n < pod_basis.vectors.size();
-         ++pod_vector_n)
+    for (unsigned int pod_vector_n = 0; pod_vector_n < n_pod_vectors; ++pod_vector_n)
       {
         auto &singular_value = pod_basis.singular_values[pod_vector_n];
         if (!std::isnan(singular_value))
           {
-            pod_basis.vectors[pod_vector_n] *= 1.0/pod_basis.singular_values[pod_vector_n];
+            pod_basis.vectors.at(pod_vector_n)
+            *= 1.0/pod_basis.singular_values.at(pod_vector_n);
           }
       }
   }
