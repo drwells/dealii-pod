@@ -2,6 +2,7 @@
 #define __deal2__pod_h
 #include <deal.II/dofs/dof_handler.h>
 
+#include <deal.II/fe/fe_q.h>
 #include <deal.II/fe/fe_system.h>
 
 #include <deal.II/lac/lapack_full_matrix.h>
@@ -48,23 +49,34 @@ namespace POD
   class PODOutput
   {
   public:
+    PODOutput();
     PODOutput(const std::shared_ptr<DoFHandler<dim>> dof_handler,
               const std::shared_ptr<BlockVector<double>> mean_vector,
               const std::shared_ptr<std::vector<BlockVector<double>>> pod_vectors,
               const std::string filename_base);
+    void reinit(const std::shared_ptr<DoFHandler<dim>> dof_handler,
+                const std::shared_ptr<BlockVector<double>> mean_vector,
+                const std::shared_ptr<std::vector<BlockVector<double>>> pod_vectors,
+                const std::string filename_base);
     void save_solution(const Vector<double> &solution,
                        const double time,
                        const unsigned int timestep_number);
   private:
-    const std::string filename_base;
-    const std::shared_ptr<DoFHandler<dim>> scalar_dof_handler;
-    const std::shared_ptr<BlockVector<double>> mean_vector;
-    const std::shared_ptr<std::vector<BlockVector<double>>> pod_vectors;
-    FESystem<dim> vector_fe;
+    std::string filename_base;
+    std::shared_ptr<const DoFHandler<dim>> scalar_dof_handler;
+    std::shared_ptr<const BlockVector<double>> mean_vector;
+    std::shared_ptr<const std::vector<BlockVector<double>>> pod_vectors;
+    std::unique_ptr<FESystem<dim>> vector_fe;
     DoFHandler<dim> vector_dof_handler;
     std::vector<XDMFEntry> xdmf_entries;
     bool write_mesh;
   };
+
+  template<int dim>
+  PODOutput<dim>::PODOutput()
+  :
+  vector_fe {new FESystem<dim>(FE_Q<dim>(1), 1)}
+  {}
 
   template<int dim>
   PODOutput<dim>::PODOutput
@@ -73,14 +85,27 @@ namespace POD
    const std::shared_ptr<std::vector<BlockVector<double>>> pod_vectors,
    const std::string filename_base)
     :
-    filename_base {filename_base},
-    scalar_dof_handler {dof_handler},
-    mean_vector {mean_vector},
-    pod_vectors {pod_vectors},
-    vector_fe(dof_handler->get_fe(), dim),
-    write_mesh {false}
+    vector_fe {new FESystem<dim>(FE_Q<dim>(1), 1)}
   {
-    vector_dof_handler.initialize(dof_handler->get_tria(), vector_fe);
+    reinit(dof_handler, mean_vector, pod_vectors, filename_base);
+  }
+ 
+  template<int dim>
+  void PODOutput<dim>::reinit(const std::shared_ptr<DoFHandler<dim>> dof_handler,
+              const std::shared_ptr<BlockVector<double>> mean_vector,
+              const std::shared_ptr<std::vector<BlockVector<double>>> pod_vectors,
+              std::string filename_base)
+  {
+    this->filename_base = filename_base;
+    scalar_dof_handler
+    = std::const_pointer_cast<const DoFHandler<dim>>(dof_handler);
+    this->mean_vector
+    = std::const_pointer_cast<const BlockVector<double>>(mean_vector);
+    this->pod_vectors
+    = std::const_pointer_cast<const std::vector<BlockVector<double>>>(pod_vectors);
+    vector_fe = std::unique_ptr<FESystem<dim>>(new FESystem<dim>(dof_handler->get_fe(), dim));
+    write_mesh = false;
+    vector_dof_handler.initialize(dof_handler->get_tria(), *vector_fe);
   }
 
   template<int dim>
@@ -106,7 +131,7 @@ namespace POD
     (dim, DataComponentInterpretation::component_is_part_of_vector);
 
     dealii::Vector<double> vector_solution (vector_dof_handler.n_dofs());
-    std::vector<types::global_dof_index> loc_vector_dof_indices (vector_fe.dofs_per_cell),
+    std::vector<types::global_dof_index> loc_vector_dof_indices (vector_fe->dofs_per_cell),
         loc_component_dof_indices (scalar_dof_handler->get_fe().dofs_per_cell);
     typename DoFHandler<dim>::active_cell_iterator
     vector_cell = vector_dof_handler.begin_active(),
@@ -116,15 +141,15 @@ namespace POD
       {
         vector_cell->get_dof_indices(loc_vector_dof_indices);
         component_cell->get_dof_indices(loc_component_dof_indices);
-        for (unsigned int j = 0; j < vector_fe.dofs_per_cell; ++j)
+        for (unsigned int j = 0; j < vector_fe->dofs_per_cell; ++j)
           {
-            switch (vector_fe.system_to_base_index(j).first.first)
+            switch (vector_fe->system_to_base_index(j).first.first)
               {
               // TODO this is sloppy cut-and-paste from step-35
               case 0:
                 vector_solution(loc_vector_dof_indices[j]) =
-                  fe_solution.block(vector_fe.system_to_base_index(j).first.second)
-                  (loc_component_dof_indices[vector_fe.system_to_base_index(j).second]);
+                  fe_solution.block(vector_fe->system_to_base_index(j).first.second)
+                  (loc_component_dof_indices[vector_fe->system_to_base_index(j).second]);
                 break;
               default:
                 ExcInternalError();
