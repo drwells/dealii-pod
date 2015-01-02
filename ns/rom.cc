@@ -67,6 +67,8 @@ namespace NavierStokes
   using namespace dealii;
   using POD::NavierStokes::trilinearity_term;
   using POD::NavierStokes::create_boundary_matrix;
+  using POD::NavierStokes::create_advective_linearization;
+  using POD::NavierStokes::create_gradient_linearization;
 
 
   template<int dim>
@@ -87,6 +89,7 @@ namespace NavierStokes
     FE_Q<dim>                        fe;
     QGauss<dim>                      quad;
     Triangulation<dim>               triangulation;
+    SparsityPattern                  sparsity_pattern;
     std::shared_ptr<DoFHandler<dim>> dof_handler;
     bool                             renumber;
 
@@ -113,15 +116,16 @@ namespace NavierStokes
   ROM<dim>::ROM(bool renumber)
     :
     fe(2), // TODO don't hardcode this: rely on some input file.
-    quad(fe.degree + 3),
+    // 2*N - 1 = 3*D -> N should be at least (3*D + 2)/2
+    quad((3*fe.degree + 2)/2),
     dof_handler {new DoFHandler<dim>},
-    renumber(renumber),
-    pod_vectors {new std::vector<BlockVector<double>>},
-    mean_vector {new BlockVector<double>},
-    time(initial_time),
-    timestep_number(0),
-    reynolds_n(re) // TODO unhardcode this.
-    {}
+  renumber(renumber),
+  pod_vectors {new std::vector<BlockVector<double>>},
+  mean_vector {new BlockVector<double>},
+  time(initial_time),
+  timestep_number(0),
+  reynolds_n(re), // TODO unhardcode this.
+  {}
 
 
   template<int dim>
@@ -183,7 +187,6 @@ namespace NavierStokes
 
     CompressedSparsityPattern c_sparsity(dof_handler->n_dofs());
     DoFTools::make_sparsity_pattern(*dof_handler, c_sparsity);
-    SparsityPattern sparsity_pattern;
     sparsity_pattern.copy_from(c_sparsity);
 
     {
@@ -249,9 +252,19 @@ namespace NavierStokes
     {
       convection_matrix_0.reinit(n_pod_dofs, n_pod_dofs);
       convection_matrix_1.reinit(n_pod_dofs, n_pod_dofs);
+      SparseMatrix<double> full_advection(sparsity_pattern);
+      std::array<SparseMatrix<double>, dim> full_gradient;
+      for (auto &gradient_matrix : full_gradient)
+        {
+          gradient_matrix.reinit(sparsity_pattern);
+        }
+      // create_advective_linearization(*dof_handler, quad, *mean_vector, full_advection);
+      // create_gradient_linearization(*dof_handler, quad, *mean_vector, full_gradient);
+      // Vector<double> advective_temp(n_dofs);
+      // Vector<double> gradient_temp(n_dofs);
+      #pragma omp parallel for
       for (unsigned int i = 0; i < n_pod_dofs; ++i)
         {
-          // an OMP parallel for loop could *probably* be put here.
           for (unsigned int j = 0; j < n_pod_dofs; ++j)
             {
               convection_matrix_0(i, j) =
@@ -285,17 +298,25 @@ namespace NavierStokes
     for (unsigned int i = 0; i < n_pod_dofs; ++i)
       {
         nonlinear_operator.emplace_back(n_pod_dofs);
-        std::cout << "nonlinearity.size() = "
-                  << nonlinear_operator.size()
-                  << std::endl;
-        #pragma omp parallel for
-        for (unsigned int j = 0; j < n_pod_dofs; ++j)
+      }
+
+    for (unsigned int j = 0; j < n_pod_dofs; ++j)
+      {
+        BlockVector<double> temp(dim, n_dofs);
+        SparseMatrix<double> full_advection(sparsity_pattern);
+        create_advective_linearization(*dof_handler, quad, pod_vectors->at(j),
+                                       full_advection);
+        #pragma omp parallel for firstprivate(temp)
+        for (unsigned int k = 0; k < n_pod_dofs; ++k)
           {
-            for (unsigned int k = 0; k < n_pod_dofs; ++k)
+            for (unsigned int dim_n = 0; dim_n < dim; ++dim_n)
               {
-                nonlinear_operator[i](j, k) =
-                  trilinearity_term(quad, *dof_handler, pod_vectors->at(i),
-                                    pod_vectors->at(j), pod_vectors->at(k));
+                full_advection.vmult(temp.block(dim_n),
+                                     pod_vectors->at(k).block(dim_n));
+              }
+            for (unsigned int i = 0; i < n_pod_dofs; ++i)
+              {
+                nonlinear_operator[i](j, k) = pod_vectors->at(i)*temp;
               }
           }
       }
