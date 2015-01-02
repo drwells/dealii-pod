@@ -109,6 +109,8 @@ namespace NavierStokes
     unsigned int                     timestep_number;
     double                           reynolds_n;
 
+    bool                             output_initialized;
+    POD::PODOutput<dim>              output;
   };
 
 
@@ -125,6 +127,7 @@ namespace NavierStokes
   time(initial_time),
   timestep_number(0),
   reynolds_n(re), // TODO unhardcode this.
+  output_initialized(false)
   {}
 
 
@@ -352,8 +355,11 @@ namespace NavierStokes
   template<int dim>
   void ROM<dim>::output_results()
   {
-    static POD::PODOutput<dim> output(dof_handler, mean_vector,
-                                      pod_vectors, "solution-");
+    if (!output_initialized)
+      {
+        output_initialized = true;
+        output.reinit(dof_handler, mean_vector, pod_vectors, "solution-");
+      }
     output.save_solution(solution, time, timestep_number);
   }
 
