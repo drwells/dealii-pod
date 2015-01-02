@@ -13,6 +13,7 @@
 #include <deal.II/lac/block_vector.h>
 #include <deal.II/lac/full_matrix.h>
 #include <deal.II/lac/lapack_full_matrix.h>
+#include <deal.II/lac/block_sparse_matrix.h>
 #include <deal.II/lac/sparse_matrix.h>
 #include <deal.II/lac/vector.h>
 
@@ -71,11 +72,11 @@ namespace POD
           local_convection_coeffs.emplace_back(dofs_per_cell, POD::NaN);
         }
 
-      for (unsigned int dim_n = 0; dim_n < dim; ++dim_n)
+      auto cell = dof_handler.begin_active(),
+           endc = dof_handler.end();
+      for (; cell != endc; ++cell)
         {
-          auto cell = dof_handler.begin_active(),
-               endc = dof_handler.end();
-          for (; cell != endc; ++cell)
+          for (unsigned int dim_n = 0; dim_n < dim; ++dim_n)
             {
               fe_values.reinit(cell);
               cell->get_dof_indices(local_dof_indices);
@@ -121,6 +122,150 @@ namespace POD
             }
         }
       return result;
+    }
+
+
+    template<int dim>
+    void create_gradient_linearization
+    (const DoFHandler<dim>     &dof_handler,
+     const QGauss<dim>         &quad,
+     const BlockVector<double> &solution,
+     // The `static_cast` is dumb, but necessary to make the compiler happy.
+     std::array<SparseMatrix<double>, static_cast<size_t>(dim)> &gradient)
+    {
+      ExcInternalError();
+      auto &fe = dof_handler.get_fe();
+      const unsigned int dofs_per_cell = fe.dofs_per_cell;
+      FullMatrix<double> cell_matrix(dofs_per_cell, dofs_per_cell);
+      FEValues<dim> fe_values(fe, quad, update_values | update_gradients
+                              | update_JxW_values);
+
+      std::vector<types::global_dof_index> local_indices(dofs_per_cell);
+      Vector<double> local_gradient_values(quad.size());
+
+      typename DoFHandler<dim>::active_cell_iterator
+      cell = dof_handler.begin_active(),
+      endc = dof_handler.end();
+
+      for (; cell != endc; ++cell)
+        {
+          fe_values.reinit(cell);
+          cell->get_dof_indices(local_indices);
+
+          for (unsigned int derivative_n = 0; derivative_n < dim; ++derivative_n)
+            {
+              cell_matrix = 0.0;
+              local_gradient_values = 0.0;
+              for (unsigned int q = 0; q < quad.size(); ++q)
+                {
+                  for (unsigned int i = 0; i < dofs_per_cell; ++i)
+                    {
+                      for (unsigned int dim_n = 0; dim_n < dim; ++dim_n)
+                        {
+                          local_gradient_values[q] +=
+                            solution.block(dim_n)[local_indices[i]]
+                            *fe_values.shape_grad(i, q)[derivative_n];
+                        }
+                    }
+                }
+
+              for (unsigned int q = 0; q < quad.size(); ++q)
+                {
+                  for (unsigned int i = 0; i < dofs_per_cell; ++i)
+                    {
+                      for (unsigned int j = 0; j < dofs_per_cell; ++j)
+                        {
+                          cell_matrix(i, j) +=
+                            fe_values.shape_value(i, q)
+                            *local_gradient_values[q]
+                            *fe_values.shape_value(j, q)
+                            *fe_values.JxW(q);
+                        }
+                    }
+                }
+              for (unsigned int i = 0; i < dofs_per_cell; ++i)
+                {
+                  for (unsigned int j = 0; j < dofs_per_cell; ++j)
+                    {
+                      gradient[derivative_n].add
+                      (local_indices[i], local_indices[j], cell_matrix(i, j));
+                    }
+                }
+            }
+        }
+    }
+
+
+    template<int dim>
+    void create_advective_linearization(const DoFHandler<dim>     &dof_handler,
+                                        const QGauss<dim>         &quad,
+                                        const BlockVector<double> &solution,
+                                        SparseMatrix<double>      &advection)
+    {
+      // This function passes (simple) tests but gives wrong results in
+      // practice. I do not yet know why.
+      ExcInternalError();
+      auto &fe = dof_handler.get_fe();
+      const unsigned int dofs_per_cell = fe.dofs_per_cell;
+      FullMatrix<double> cell_matrix(dofs_per_cell, dofs_per_cell);
+      FEValues<dim> fe_values(fe, quad, update_values | update_gradients
+                              | update_JxW_values);
+
+      std::vector<types::global_dof_index> local_indices(dofs_per_cell);
+      std::array<Vector<double>, dim> local_advection_values;
+      for (auto &vector : local_advection_values)
+        {
+          vector.reinit(quad.size());
+        }
+
+      typename DoFHandler<dim>::active_cell_iterator
+      cell = dof_handler.begin_active(),
+      endc = dof_handler.end();
+
+      for (; cell != endc; ++cell)
+        {
+          fe_values.reinit(cell);
+          cell_matrix = 0.0;
+          cell->get_dof_indices(local_indices);
+          for (unsigned int dim_n = 0; dim_n < dim; ++dim_n)
+            {
+              local_advection_values[dim_n] = 0.0;
+              for (unsigned int q = 0; q < quad.size(); ++q)
+                {
+                  for (unsigned int i = 0; i < dofs_per_cell; ++i)
+                    {
+                      local_advection_values[dim_n][q] +=
+                        fe_values.shape_value(i, q)
+                        *solution.block(dim_n)[local_indices[i]];
+                    }
+                }
+            }
+
+          for (unsigned int q = 0; q < quad.size(); ++q)
+            {
+              for (unsigned int i = 0; i < dofs_per_cell; ++i)
+                {
+                  for (unsigned int j = 0; j < dofs_per_cell; ++j)
+                    {
+                      for (unsigned int dim_n = 0; dim_n < dim; ++dim_n)
+                        {
+                          cell_matrix(i, j) += fe_values.shape_value(i, q)
+                                               *local_advection_values[dim_n][q]
+                                               *fe_values.shape_grad(j, q)[dim_n]
+                                               *fe_values.JxW(q);
+                        }
+                    }
+                }
+            }
+
+          for (unsigned int i = 0; i < dofs_per_cell; ++i)
+            {
+              for (unsigned int j = 0; j < dofs_per_cell; ++j)
+                {
+                  advection.add(local_indices[i], local_indices[j], cell_matrix(i, j));
+                }
+            }
+        }
     }
 
 
