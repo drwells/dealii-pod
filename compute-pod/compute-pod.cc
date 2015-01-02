@@ -52,6 +52,7 @@ namespace POD
     void run();
   private:
     bool                           renumber;
+    unsigned int                   n_pod_vectors;
     std::string                    snapshot_glob;
     std::string                    triangulation_file_name;
     SparsityPattern                sparsity_pattern;
@@ -74,6 +75,7 @@ namespace POD
   template<int dim>
   PODVectors<dim>::PODVectors (bool renumber)
     :
+    n_pod_vectors {100},
     fe(deg), // TODO this depends on the parameter file.
     vector_fe(fe, dim),
     quadrature_rule(deg + 3)
@@ -126,7 +128,7 @@ namespace POD
       }
     globfree(&glob_result);
 
-    method_of_snapshots(mass_matrix, snapshot_file_names, pod_result);
+    method_of_snapshots(mass_matrix, snapshot_file_names, n_pod_vectors, pod_result);
     // check orthogonality.
     unsigned int n_pod_vectors = std::min(static_cast<unsigned int>(pod_result.vectors.size()),
                                           static_cast<unsigned int>(20));
@@ -196,36 +198,33 @@ namespace POD
     std::vector<XDMFEntry> xdmf_entries;
 
     // TODO un-hardcode the maximum of 100 POD vectors
-    for (unsigned int i = 0;
-         i < std::min(static_cast<unsigned int>(100),
-                      pod_result.get_n_pod_vectors());
-         ++i)
+    for (unsigned int i = 0; i < pod_result.get_n_pod_vectors(); ++i)
       {
         std::string file_name = "pod-vector-" + Utilities::int_to_string(i, 7)
-          + ".h5";
-        H5::save_block_vector(file_name, pod_result.vectors[i]);
+                                + ".h5";
+        H5::save_block_vector(file_name, pod_result.vectors.at(i));
 
         // save the information in a plot-friendly format.
         std::vector<std::string> solution_names(dim, "v");
         std::string plot_file_name = "pod-vector-plot-"
-          + Utilities::int_to_string(i, 7) + ".h5";
+                                     + Utilities::int_to_string(i, 7) + ".h5";
 
         DataOut<dim> data_out;
         data_out.attach_dof_handler(vector_dof_handler);
         std::vector<DataComponentInterpretation::DataComponentInterpretation>
-          component_interpretation
-          (dim,
-           DataComponentInterpretation::component_is_part_of_vector);
+        component_interpretation
+        (dim,
+         DataComponentInterpretation::component_is_part_of_vector);
         DataOutBase::DataOutFilter data_filter
-          (DataOutBase::DataOutFilterFlags(true, true));
+        (DataOutBase::DataOutFilterFlags(true, true));
 
         dealii::Vector<double> vector_solution (vector_dof_handler.n_dofs());
         std::vector<types::global_dof_index> loc_vector_dof_indices (vector_fe.dofs_per_cell),
-          loc_component_dof_indices (fe.dofs_per_cell);
+            loc_component_dof_indices (fe.dofs_per_cell);
         typename DoFHandler<dim>::active_cell_iterator
-          vector_cell = vector_dof_handler.begin_active(),
-          vector_endc = vector_dof_handler.end(),
-          component_cell = dof_handler.begin_active();
+        vector_cell = vector_dof_handler.begin_active(),
+        vector_endc = vector_dof_handler.end(),
+        component_cell = dof_handler.begin_active();
         for (; vector_cell != vector_endc; ++vector_cell, ++component_cell)
           {
             vector_cell->get_dof_indices(loc_vector_dof_indices);
@@ -234,7 +233,7 @@ namespace POD
               {
                 switch (vector_fe.system_to_base_index(j).first.first)
                   {
-                    // TODO this is sloppy cut-and-paste from step-35
+                  // TODO this is sloppy cut-and-paste from step-35
                   case 0:
                     vector_solution(loc_vector_dof_indices[j]) =
                       pod_result.vectors[i].block(vector_fe.system_to_base_index(j).first.second)
@@ -258,8 +257,8 @@ namespace POD
         write_mesh = false;
 
         auto new_xdmf_entry = data_out.create_xdmf_entry
-          (data_filter, mesh_file_name, plot_file_name,
-           static_cast<double>(i), MPI_COMM_WORLD);
+                              (data_filter, mesh_file_name, plot_file_name,
+                               static_cast<double>(i), MPI_COMM_WORLD);
         xdmf_entries.push_back(std::move(new_xdmf_entry));
         data_out.write_xdmf_file(xdmf_entries, xdmf_filename, MPI_COMM_WORLD);
       }
@@ -280,7 +279,7 @@ int main(int argc, char **argv)
 {
   using namespace POD;
   Utilities::MPI::MPI_InitFinalize mpi_initialization
-    (argc, argv, numbers::invalid_unsigned_int);
+  (argc, argv, numbers::invalid_unsigned_int);
   {
     PODVectors<2> pod_vectors(false);
     pod_vectors.run();
