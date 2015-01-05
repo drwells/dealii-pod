@@ -73,8 +73,8 @@ namespace POD
         eigenvectors);
     std::cout << "computed eigenvalues and eigenvectors." << std::endl;
     std::cout << "eigenvectors size: " << eigenvectors.size() << std::endl;
-    pod_basis.singular_values.resize(n_pod_vectors);
-    for (i = 0; i < n_pod_vectors; ++i)
+    pod_basis.singular_values.resize(n_snapshots);
+    for (i = 0; i < n_snapshots; ++i)
       {
         // As the matrix has provably positive real eigenvalues...
         std::complex<double> eigenvalue = correlation_matrix.eigenvalue(i);
@@ -90,6 +90,8 @@ namespace POD
         // Assert(eigenvalue.real() > 0.0, ExcInternalError());
         pod_basis.singular_values.at(i) = std::sqrt(eigenvalue.real());
       }
+    std::reverse(eigenvectors.begin(), eigenvectors.end());
+    std::reverse(pod_basis.singular_values.begin(), pod_basis.singular_values.end());
 
     pod_basis.vectors.resize(n_pod_vectors);
     #pragma omp parallel for
@@ -112,16 +114,13 @@ namespace POD
           }
         pod_basis.vectors.at(eigenvector_n) = std::move(pod_vector);
       }
-    std::reverse(pod_basis.singular_values.begin(), pod_basis.singular_values.end());
-    std::reverse(pod_basis.vectors.begin(), pod_basis.vectors.end());
 
     for (unsigned int pod_vector_n = 0; pod_vector_n < n_pod_vectors; ++pod_vector_n)
       {
-        auto &singular_value = pod_basis.singular_values[pod_vector_n];
+        auto &singular_value = pod_basis.singular_values.at(pod_vector_n);
         if (!std::isnan(singular_value))
           {
-            pod_basis.vectors.at(pod_vector_n)
-            *= 1.0/pod_basis.singular_values.at(pod_vector_n);
+            pod_basis.vectors.at(pod_vector_n) *= 1.0/singular_value;
           }
       }
   }
@@ -147,7 +146,7 @@ namespace POD
 
   unsigned int BlockPODBasis::get_n_pod_vectors() const
   {
-    return singular_values.size();
+    return vectors.size();
   }
 
   void BlockPODBasis::project_load_vector(BlockVector<double> &load_vector,
