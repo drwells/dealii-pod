@@ -34,6 +34,37 @@ namespace POD
       factorized_mass_matrix.apply_lu_factorization(dst, false);
     }
 
+    NavierStokesLerayRegularizationRHS::NavierStokesLerayRegularizationRHS
+    (FullMatrix<double> linear_operator,
+     FullMatrix<double> mass_matrix,
+     FullMatrix<double> laplace_matrix,
+     std::vector<FullMatrix<double>> nonlinear_operator,
+     Vector<double> mean_contribution,
+     double filter_radius) :
+      NavierStokesRHS(linear_operator, mass_matrix, nonlinear_operator,
+                      mean_contribution),
+      laplace_matrix {laplace_matrix},
+      filter_radius {filter_radius}
+    {}
+
+    void NavierStokesLerayRegularizationRHS::apply
+    (Vector<double> &dst, const Vector<double> &src)
+    {
+      const unsigned int n_dofs = src.size();
+      linear_operator.vmult(dst, src);
+      dst += mean_contribution;
+
+      Vector<double> temp(n_dofs);
+      for (unsigned int pod_vector_n = 0; pod_vector_n < n_dofs; ++pod_vector_n)
+        {
+          nonlinear_operator[pod_vector_n].vmult(temp, src);
+          dst(pod_vector_n) -= temp * src;
+        }
+
+      factorized_mass_matrix.apply_lu_factorization(dst, false);
+    }
+
+
     // template specializations
     template void create_advective_linearization<2>
     (const DoFHandler<2>       &dof_handler,

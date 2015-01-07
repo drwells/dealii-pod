@@ -49,6 +49,26 @@ namespace POD
       Vector<double> mean_contribution;
     };
 
+    class NavierStokesLerayRegularizationRHS : public NavierStokesRHS
+    {
+    public:
+      NavierStokesLerayRegularizationRHS
+      (FullMatrix<double> linear_operator,
+       FullMatrix<double> mass_matrix,
+       FullMatrix<double> laplace_matrix,
+       std::vector<FullMatrix<double>> nonlinear_operator,
+       Vector<double> mean_contribution,
+       double filter_radius);
+      void apply(Vector<double> &dst, const Vector<double> &src) override;
+    private:
+      FullMatrix<double> linear_operator;
+      FullMatrix<double> laplace_matrix;
+      LAPACKFullMatrix<double> factorized_mass_matrix;
+      std::vector<FullMatrix<double>> nonlinear_operator;
+      Vector<double> mean_contribution;
+      double filter_radius;
+    };
+
     template<int dim>
     double trilinearity_term(
       const QGauss<dim>         &quad,
