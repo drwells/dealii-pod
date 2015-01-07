@@ -25,14 +25,6 @@ namespace POD
       dst += mean_contribution;
 
       Vector<double> temp(n_dofs);
-      // this could probably be parallelized with something like
-      // #pragma omp parallel
-      // {
-      // Vector<double> temp;
-      // #pragma omp parallel for
-      // ...
-      // }
-      // }
       for (unsigned int pod_vector_n = 0; pod_vector_n < n_dofs; ++pod_vector_n)
         {
           nonlinear_operator[pod_vector_n].vmult(temp, src);
