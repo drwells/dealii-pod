@@ -62,6 +62,8 @@ constexpr double initial_time = 20.0;
 constexpr double final_time = 40.0;
 constexpr double time_step = 5.0e-5;
 
+constexpr bool save_plot_pictures = false;
+
 namespace NavierStokes
 {
   using namespace dealii;
@@ -360,7 +362,7 @@ namespace NavierStokes
         output_initialized = true;
         output.reinit(dof_handler, mean_vector, pod_vectors, "solution-");
       }
-    output.save_solution(solution, time, timestep_number);
+    output.save_solution(solution, time, timestep_number, save_plot_pictures);
   }
 
 
