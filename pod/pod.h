@@ -90,7 +90,7 @@ namespace POD
   {
     reinit(dof_handler, mean_vector, pod_vectors, filename_base);
   }
- 
+
   template<int dim>
   void PODOutput<dim>::reinit(const std::shared_ptr<DoFHandler<dim>> dof_handler,
               const std::shared_ptr<BlockVector<double>> mean_vector,
@@ -105,7 +105,7 @@ namespace POD
     this->pod_vectors
     = std::const_pointer_cast<const std::vector<BlockVector<double>>>(pod_vectors);
     vector_fe = std::unique_ptr<FESystem<dim>>(new FESystem<dim>(dof_handler->get_fe(), dim));
-    write_mesh = false;
+    write_mesh = true;
     vector_dof_handler.initialize(dof_handler->get_tria(), *vector_fe);
   }
 
