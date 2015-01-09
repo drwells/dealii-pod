@@ -20,6 +20,7 @@
 #include <vector>
 
 #include "../h5/h5.h"
+#include "../extra/extra.h"
 
 using namespace dealii;
 namespace POD
@@ -116,7 +117,7 @@ namespace POD
                                      const bool save_plot_picture)
   {
     std::string filename = filename_base
-      + Utilities::int_to_string(timestep_number, 10)
+      + extra::int_to_string(timestep_number, 15)
       + ".h5";
     const unsigned int n_dofs = mean_vector->block(0).size();
     const unsigned int n_pod_dofs = pod_vectors->size();
@@ -124,7 +125,9 @@ namespace POD
       BlockVector<double> pod_solution(1, n_pod_dofs);
       pod_solution.block(0) = solution;
       H5::save_block_vector
-        ("pod-solution-" + Utilities::int_to_string(timestep_number, 10) + ".h5",
+        (std::string("pod-solution-")
+         + extra::int_to_string(timestep_number, 15)
+         + std::string(".h5"),
          pod_solution);
     }
     if (save_plot_picture)
@@ -175,7 +178,7 @@ namespace POD
                                  component_interpretation);
         data_out.build_patches(2); // TODO unhardcode the patch level
         std::string solution_file_name = filename_base
-          + Utilities::int_to_string(timestep_number, 10)
+          + extra::int_to_string(timestep_number, 10)
           + ".h5";
         std::string mesh_file_name = "mesh.h5";
         std::string xdmf_filename = "solution.xdmf";
