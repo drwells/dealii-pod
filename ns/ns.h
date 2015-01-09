@@ -42,12 +42,13 @@ namespace POD
                       std::vector<FullMatrix<double>> nonlinear_operator,
                       Vector<double> mean_contribution);
       void apply(Vector<double> &dst, const Vector<double> &src) override;
-    private:
+    protected:
       FullMatrix<double> linear_operator;
       LAPACKFullMatrix<double> factorized_mass_matrix;
       std::vector<FullMatrix<double>> nonlinear_operator;
       Vector<double> mean_contribution;
     };
+
 
     class NavierStokesLerayRegularizationRHS : public NavierStokesRHS
     {
@@ -61,13 +62,9 @@ namespace POD
        double filter_radius);
       void apply(Vector<double> &dst, const Vector<double> &src) override;
     private:
-      FullMatrix<double> linear_operator;
-      FullMatrix<double> laplace_matrix;
-      LAPACKFullMatrix<double> factorized_mass_matrix;
-      std::vector<FullMatrix<double>> nonlinear_operator;
-      Vector<double> mean_contribution;
-      double filter_radius;
+      LAPACKFullMatrix<double> factorized_filter_matrix;
     };
+
 
     template<int dim>
     double trilinearity_term(

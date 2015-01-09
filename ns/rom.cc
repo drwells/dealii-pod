@@ -61,6 +61,8 @@ constexpr double re = 100.0;
 constexpr double initial_time = 20.0;
 constexpr double final_time = 40.0;
 constexpr double time_step = 5.0e-5;
+constexpr double filter_radius = 0.000;
+
 
 constexpr bool save_plot_pictures = false;
 
@@ -96,6 +98,7 @@ namespace NavierStokes
     bool                             renumber;
 
     FullMatrix<double>               mass_matrix;
+    FullMatrix<double>               laplace_matrix;
     FullMatrix<double>               linear_operator;
     std::vector<FullMatrix<double>>  nonlinear_operator;
     Vector<double>                   mean_contribution_vector;
@@ -182,7 +185,6 @@ namespace NavierStokes
   template<int dim>
   void ROM<dim>::setup_linear()
   {
-    FullMatrix<double> laplace_matrix;
     FullMatrix<double> boundary_matrix;
     FullMatrix<double> convection_matrix_0;
     FullMatrix<double> convection_matrix_1;
@@ -333,11 +335,10 @@ namespace NavierStokes
   void ROM<dim>::time_iterate()
   {
     Vector<double> old_solution(solution);
-    std::unique_ptr<POD::NavierStokes::NavierStokesRHS>
-    rhs_function(new POD::NavierStokes::NavierStokesRHS(linear_operator,
-                                                        mass_matrix,
-                                                        nonlinear_operator,
-                                                        mean_contribution_vector));
+    std::unique_ptr<POD::NavierStokes::NavierStokesLerayRegularizationRHS>
+    rhs_function(new POD::NavierStokes::NavierStokesLerayRegularizationRHS
+    (linear_operator, mass_matrix, laplace_matrix, nonlinear_operator,
+     mean_contribution_vector, filter_radius));
     ODE::RungeKutta4 rk_method(std::move(rhs_function));
     while (time < final_time)
       {

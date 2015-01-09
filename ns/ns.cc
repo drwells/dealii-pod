@@ -42,10 +42,16 @@ namespace POD
      Vector<double> mean_contribution,
      double filter_radius) :
       NavierStokesRHS(linear_operator, mass_matrix, nonlinear_operator,
-                      mean_contribution),
-      laplace_matrix {laplace_matrix},
-      filter_radius {filter_radius}
-    {}
+                      mean_contribution)
+    {
+      FullMatrix<double> filter_matrix(mass_matrix.m());
+      filter_matrix.add(filter_radius*filter_radius, laplace_matrix);
+      filter_matrix.add(1.0, mass_matrix);
+      factorized_filter_matrix.reinit(mass_matrix.m());
+      factorized_filter_matrix.copy_from(filter_matrix);
+      factorized_filter_matrix.compute_lu_factorization();
+    }
+
 
     void NavierStokesLerayRegularizationRHS::apply
     (Vector<double> &dst, const Vector<double> &src)
@@ -54,10 +60,13 @@ namespace POD
       linear_operator.vmult(dst, src);
       dst += mean_contribution;
 
+      auto filtered_src = src;
+      factorized_filter_matrix.apply_lu_factorization(filtered_src, false);
+
       Vector<double> temp(n_dofs);
       for (unsigned int pod_vector_n = 0; pod_vector_n < n_dofs; ++pod_vector_n)
         {
-          nonlinear_operator[pod_vector_n].vmult(temp, src);
+          nonlinear_operator[pod_vector_n].vmult(temp, filtered_src);
           dst(pod_vector_n) -= temp * src;
         }
 
