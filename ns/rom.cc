@@ -260,23 +260,22 @@ namespace NavierStokes
       convection_matrix_0.reinit(n_pod_dofs, n_pod_dofs);
       convection_matrix_1.reinit(n_pod_dofs, n_pod_dofs);
       SparseMatrix<double> full_advection(sparsity_pattern);
-      std::array<SparseMatrix<double>, dim> full_gradient;
-      for (auto &gradient_matrix : full_gradient)
-        {
-          gradient_matrix.reinit(sparsity_pattern);
-        }
-      // create_advective_linearization(*dof_handler, quad, *mean_vector, full_advection);
-      // create_gradient_linearization(*dof_handler, quad, *mean_vector, full_gradient);
-      // Vector<double> advective_temp(n_dofs);
-      // Vector<double> gradient_temp(n_dofs);
+      create_advective_linearization(*dof_handler, quad, *mean_vector, full_advection);
       #pragma omp parallel for
       for (unsigned int i = 0; i < n_pod_dofs; ++i)
         {
+          #pragma omp critical
+            {
+              std::cout << "row " << i << " of the linearizations" << std::endl;
+            }
+          BlockVector<double> advective_temp(dim, n_dofs);
+          for (unsigned int dim_n = 0; dim_n < dim; ++dim_n)
+            {
+              full_advection.vmult(advective_temp.block(dim_n), pod_vectors->at(i));
+            }
           for (unsigned int j = 0; j < n_pod_dofs; ++j)
             {
-              convection_matrix_0(i, j) =
-                trilinearity_term(quad, *dof_handler, pod_vectors->at(i),
-                                  *mean_vector, pod_vectors->at(j));
+              convection_matrix_0(j, i) = pod_vectors->at(j) * advective_temp;
               convection_matrix_1(i, j) =
                 trilinearity_term(quad, *dof_handler, pod_vectors->at(i),
                                   pod_vectors->at(j), *mean_vector);
