@@ -19,6 +19,8 @@ SET(TARGET_SRC
   ${TARGET}.cc
   ns.h
   ns.cc
+  ../extra/extra.h
+  ../extra/extra.cc
   ../pod/pod.h
   ../pod/pod.cc
   ../ode/ode.h
