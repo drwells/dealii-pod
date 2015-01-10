@@ -287,6 +287,99 @@ namespace POD
 
 
     template<int dim>
+    void create_reduced_nonlinearity
+    (const DoFHandler<dim>                  &dof_handler,
+     const SparsityPattern                  &sparsity_pattern,
+     const QGauss<dim>                      &quad,
+     const std::vector<BlockVector<double>> &pod_vectors,
+     std::vector<FullMatrix<double>>        &nonlinear_operator)
+    {
+      const unsigned int n_pod_dofs = pod_vectors.size();
+      const unsigned int n_dofs = pod_vectors.at(0).block(0).size();
+      nonlinear_operator.resize(0);
+      for (unsigned int i = 0; i < n_pod_dofs; ++i)
+        {
+          nonlinear_operator.emplace_back(n_pod_dofs);
+        }
+
+      for (unsigned int j = 0; j < n_pod_dofs; ++j)
+        {
+          BlockVector<double> temp(dim, n_dofs);
+          SparseMatrix<double> full_advection(sparsity_pattern);
+          create_advective_linearization(dof_handler, quad, pod_vectors.at(j),
+                                         full_advection);
+          #pragma omp parallel for firstprivate(temp)
+          for (unsigned int k = 0; k < n_pod_dofs; ++k)
+            {
+              for (unsigned int dim_n = 0; dim_n < dim; ++dim_n)
+                {
+                  full_advection.vmult(temp.block(dim_n),
+                                       pod_vectors.at(k).block(dim_n));
+                }
+              for (unsigned int i = 0; i < n_pod_dofs; ++i)
+                {
+                  nonlinear_operator[i](j, k) = pod_vectors.at(i)*temp;
+                }
+            }
+        }
+    }
+
+
+    template<int dim>
+    void create_reduced_advective_linearization
+    (const DoFHandler<dim>                  &dof_handler,
+     const SparsityPattern                  &sparsity_pattern,
+     const QGauss<dim>                      &quad,
+     const BlockVector<double>              &solution,
+     const std::vector<BlockVector<double>> &pod_vectors,
+     FullMatrix<double>                     &advection)
+    {
+      SparseMatrix<double> full_advection(sparsity_pattern);
+      create_advective_linearization(dof_handler, quad, solution, full_advection);
+      advection.reinit(pod_vectors.size(), pod_vectors.size());
+
+      BlockVector<double> temp(dim, pod_vectors.at(0).block(0).size());
+      for (unsigned int j = 0; j < pod_vectors.size(); ++j)
+        {
+          for (unsigned int dim_n = 0; dim_n < dim; ++dim_n)
+            {
+              full_advection.vmult(temp.block(dim_n),
+                                   pod_vectors.at(j).block(dim_n));
+            }
+          #pragma omp parallel for
+          for (unsigned int i = 0; i < pod_vectors.size(); ++i)
+            {
+              advection(i, j) = pod_vectors.at(i) * temp;
+            }
+        }
+    }
+
+
+    template<int dim>
+    void create_reduced_gradient_linearization
+    (const DoFHandler<dim>                  &dof_handler,
+     const SparsityPattern                  &sparsity_pattern,
+     const QGauss<dim>                      &quad,
+     const BlockVector<double>              &solution,
+     const std::vector<BlockVector<double>> &pod_vectors,
+     FullMatrix<double>                     &gradient)
+    {
+      gradient.reinit(pod_vectors.size(), pod_vectors.size());
+
+      BlockVector<double> temp(dim, pod_vectors.at(0).block(0).size());
+      #pragma omp parallel for
+      for (unsigned int i = 0; i < pod_vectors.size(); ++i)
+        {
+          for (unsigned int j = 0; j < pod_vectors.size(); ++j)
+            {
+              gradient(i, j) = trilinearity_term(quad, dof_handler,
+                  pod_vectors.at(i), pod_vectors.at(j), solution);
+            }
+        }
+    }
+
+
+    template<int dim>
     void create_boundary_matrix(const DoFHandler<dim> &dof_handler,
                                 const QGauss<dim - 1> &face_quad,
                                 const unsigned int outflow_label,

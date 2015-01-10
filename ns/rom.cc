@@ -257,30 +257,12 @@ namespace NavierStokes
     std::cout << "assembled the reduced boundary matrix." << std::endl;
 
     {
-      convection_matrix_0.reinit(n_pod_dofs, n_pod_dofs);
-      convection_matrix_1.reinit(n_pod_dofs, n_pod_dofs);
-      SparseMatrix<double> full_advection(sparsity_pattern);
-      create_advective_linearization(*dof_handler, quad, *mean_vector, full_advection);
-      #pragma omp parallel for
-      for (unsigned int i = 0; i < n_pod_dofs; ++i)
-        {
-          #pragma omp critical
-            {
-              std::cout << "row " << i << " of the linearizations" << std::endl;
-            }
-          BlockVector<double> advective_temp(dim, n_dofs);
-          for (unsigned int dim_n = 0; dim_n < dim; ++dim_n)
-            {
-              full_advection.vmult(advective_temp.block(dim_n), pod_vectors->at(i));
-            }
-          for (unsigned int j = 0; j < n_pod_dofs; ++j)
-            {
-              convection_matrix_0(j, i) = pod_vectors->at(j) * advective_temp;
-              convection_matrix_1(i, j) =
-                trilinearity_term(quad, *dof_handler, pod_vectors->at(i),
-                                  pod_vectors->at(j), *mean_vector);
-            }
-        }
+      POD::NavierStokes::create_reduced_advective_linearization
+      (*dof_handler, sparsity_pattern, quad, *mean_vector, *pod_vectors,
+       convection_matrix_0);
+      POD::NavierStokes::create_reduced_gradient_linearization
+      (*dof_handler, sparsity_pattern, quad, *mean_vector, *pod_vectors,
+       convection_matrix_1);
     }
     std::cout << "assembled the two convection matrices." << std::endl;
     for (unsigned int pod_vector_n = 0; pod_vector_n < n_pod_dofs; ++pod_vector_n)
@@ -301,32 +283,8 @@ namespace NavierStokes
   template<int dim>
   void ROM<dim>::setup_nonlinear()
   {
-    for (unsigned int i = 0; i < n_pod_dofs; ++i)
-      {
-        nonlinear_operator.emplace_back(n_pod_dofs);
-      }
-
-    for (unsigned int j = 0; j < n_pod_dofs; ++j)
-      {
-        BlockVector<double> temp(dim, n_dofs);
-        SparseMatrix<double> full_advection(sparsity_pattern);
-        create_advective_linearization(*dof_handler, quad, pod_vectors->at(j),
-                                       full_advection);
-        #pragma omp parallel for firstprivate(temp)
-        for (unsigned int k = 0; k < n_pod_dofs; ++k)
-          {
-            for (unsigned int dim_n = 0; dim_n < dim; ++dim_n)
-              {
-                full_advection.vmult(temp.block(dim_n),
-                                     pod_vectors->at(k).block(dim_n));
-              }
-            for (unsigned int i = 0; i < n_pod_dofs; ++i)
-              {
-                nonlinear_operator[i](j, k) = pod_vectors->at(i)*temp;
-              }
-          }
-      }
-    std::cout << "assembled the tensor." << std::endl;
+    POD::NavierStokes:: create_reduced_nonlinearity
+    (*dof_handler, sparsity_pattern, quad, *pod_vectors, nonlinear_operator);
   }
 
 
