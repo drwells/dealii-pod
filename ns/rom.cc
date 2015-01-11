@@ -69,10 +69,6 @@ constexpr bool save_plot_pictures = false;
 namespace NavierStokes
 {
   using namespace dealii;
-  using POD::NavierStokes::trilinearity_term;
-  using POD::NavierStokes::create_boundary_matrix;
-  using POD::NavierStokes::create_advective_linearization;
-  using POD::NavierStokes::create_gradient_linearization;
 
 
   template<int dim>
@@ -85,10 +81,8 @@ namespace NavierStokes
   private:
     void load_mesh();
     void load_vectors();
-    void setup_linear();
-    void setup_nonlinear();
+    void setup_reduced_system();
     void time_iterate();
-    void output_results();
 
     FE_Q<dim>                        fe;
     QGauss<dim>                      quad;
@@ -183,14 +177,12 @@ namespace NavierStokes
 
 
   template<int dim>
-  void ROM<dim>::setup_linear()
+  void ROM<dim>::setup_reduced_system()
   {
     FullMatrix<double> boundary_matrix;
     FullMatrix<double> convection_matrix_0;
     FullMatrix<double> convection_matrix_1;
-    std::cout << "Number of degrees of freedom: "
-              << dof_handler->n_dofs()
-              << std::endl;
+    std::cout << "DoFs: " << dof_handler->n_dofs() << std::endl;
 
     CompressedSparsityPattern c_sparsity(dof_handler->n_dofs());
     DoFTools::make_sparsity_pattern(*dof_handler, c_sparsity);
@@ -241,7 +233,8 @@ namespace NavierStokes
     {
       SparseMatrix<double> full_boundary_matrix(sparsity_pattern);
       QGauss<dim - 1> face_quad(fe.degree + 3);
-      create_boundary_matrix(*dof_handler, face_quad, outflow_label, full_boundary_matrix);
+      POD::NavierStokes::create_boundary_matrix
+      (*dof_handler, face_quad, outflow_label, full_boundary_matrix);
 
       std::vector<unsigned int> dims {0};
       POD::create_reduced_matrix(*pod_vectors, full_boundary_matrix, dims, boundary_matrix);
@@ -268,8 +261,9 @@ namespace NavierStokes
     for (unsigned int pod_vector_n = 0; pod_vector_n < n_pod_dofs; ++pod_vector_n)
       {
         mean_contribution_vector(pod_vector_n) -=
-          trilinearity_term(quad, *dof_handler, pod_vectors->at(pod_vector_n),
-                            *mean_vector, *mean_vector);
+          POD::NavierStokes::trilinearity_term
+          (quad, *dof_handler, pod_vectors->at(pod_vector_n), *mean_vector,
+           *mean_vector);
       }
 
     linear_operator.reinit(n_pod_dofs, n_pod_dofs);
@@ -277,13 +271,8 @@ namespace NavierStokes
     linear_operator.add(1.0/reynolds_n, boundary_matrix);
     linear_operator.add(-1.0, convection_matrix_0);
     linear_operator.add(-1.0, convection_matrix_1);
-  }
 
-
-  template<int dim>
-  void ROM<dim>::setup_nonlinear()
-  {
-    POD::NavierStokes:: create_reduced_nonlinearity
+    POD::NavierStokes::create_reduced_nonlinearity
     (*dof_handler, sparsity_pattern, quad, *pod_vectors, nonlinear_operator);
   }
 
@@ -294,8 +283,8 @@ namespace NavierStokes
     Vector<double> old_solution(solution);
     std::unique_ptr<POD::NavierStokes::NavierStokesLerayRegularizationRHS>
     rhs_function(new POD::NavierStokes::NavierStokesLerayRegularizationRHS
-    (linear_operator, mass_matrix, laplace_matrix, nonlinear_operator,
-     mean_contribution_vector, filter_radius));
+                 (linear_operator, mass_matrix, laplace_matrix, nonlinear_operator,
+                  mean_contribution_vector, filter_radius));
     ODE::RungeKutta4 rk_method(std::move(rhs_function));
     while (time < final_time)
       {
@@ -304,7 +293,13 @@ namespace NavierStokes
 
         if (timestep_number % output_interval == 0)
           {
-            output_results();
+            if (!output_initialized)
+              {
+                output_initialized = true;
+                output.reinit(dof_handler, mean_vector, pod_vectors, "solution-");
+              }
+            output.save_solution(solution, time, timestep_number, save_plot_pictures);
+
           }
         ++timestep_number;
         time += time_step;
@@ -313,24 +308,11 @@ namespace NavierStokes
 
 
   template<int dim>
-  void ROM<dim>::output_results()
-  {
-    if (!output_initialized)
-      {
-        output_initialized = true;
-        output.reinit(dof_handler, mean_vector, pod_vectors, "solution-");
-      }
-    output.save_solution(solution, time, timestep_number, save_plot_pictures);
-  }
-
-
-  template<int dim>
   void ROM<dim>::run()
   {
     load_mesh();
     load_vectors();
-    setup_linear();
-    setup_nonlinear();
+    setup_reduced_system();
     time_iterate();
   }
 }
