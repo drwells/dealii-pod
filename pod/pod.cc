@@ -46,27 +46,21 @@ namespace POD
     LAPACKFullMatrix<double> correlation_matrix(n_snapshots);
     LAPACKFullMatrix<double> identity(n_snapshots);
     identity = 0.0;
-    std::cout << "n_snapshots: " << n_snapshots << std::endl;
-    std::cout << "snapshot vector length: " << snapshots.size() << std::endl;
-    #pragma omp parallel for
+    BlockVector<double> temp(n_blocks, n_dofs_per_block);
     for (unsigned int row = 0; row < n_snapshots; ++row)
       {
-        Vector<double> temp(n_dofs_per_block);
+        for (unsigned int block_n = 0; block_n < n_blocks; ++block_n)
+          {
+            mass_matrix.vmult(temp.block(block_n), snapshots.at(row).block(block_n));
+          }
         for (unsigned int column = 0; column <= row; ++column)
           {
-            double value = 0;
-            for (unsigned int block_n = 0; block_n < n_blocks; ++block_n)
-              {
-                mass_matrix.vmult(temp, snapshots[row].block(block_n));
-                value += temp * snapshots[column].block(block_n);
-              }
+            double value = temp * snapshots.at(column);
             correlation_matrix(row, column) = value;
             correlation_matrix(column, row) = value;
           }
         identity(row, row) = 1.0;
       }
-
-    // correlation_matrix.print_formatted(std::cout, 2, false);
 
     std::vector<Vector<double>> eigenvectors(n_snapshots);
     correlation_matrix.compute_generalized_eigenvalues_symmetric(identity,

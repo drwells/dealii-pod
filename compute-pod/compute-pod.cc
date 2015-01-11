@@ -130,26 +130,25 @@ namespace POD
 
     method_of_snapshots(mass_matrix, snapshot_file_names, n_pod_vectors, pod_result);
     // check orthogonality.
-    dealii::Vector<double> temp(pod_result.vectors[0].block(0).size());
+    dealii::BlockVector<double> temp(pod_result.vectors.at(0).n_blocks(),
+                                     pod_result.vectors.at(0).block(0).size());
     for (unsigned int i = 0; i < pod_result.get_n_pod_vectors(); ++i)
       {
-        auto &left_vector = pod_result.vectors.at(i);
-        std::cout << "norm is " << left_vector.l2_norm() << std::endl;
+        auto &right_vector = pod_result.vectors.at(i);
+        for (unsigned int dim_n = 0; dim_n < dim; ++dim_n)
+          {
+            mass_matrix.vmult(temp.block(dim_n), right_vector.block(dim_n));
+          }
         for (unsigned int j = 0; j < pod_result.get_n_pod_vectors(); ++j)
           {
-            auto &right_vector = pod_result.vectors.at(j);
-            double result = 0.0;
-            for (unsigned int dim_n = 0; dim_n < dim; ++dim_n)
-              {
-                mass_matrix.vmult(temp, right_vector.block(dim_n));
-                result += left_vector.block(dim_n) * temp;
-              }
-            constexpr double tolerance = 1e-7;
+            auto &left_vector = pod_result.vectors.at(j);
+            double result = left_vector * temp;
+            constexpr double tolerance = 1e-12;
             if (i == j)
               {
                 if (std::abs(result - 1.0) > tolerance)
                   {
-                    std::cerr << "C(" << i << ", " << j << ") = "
+                    std::cerr << "C(" << j << ", " << i << ") = "
                               << result << std::endl;
                     Assert(std::abs(result - 1) < tolerance, ExcInternalError());
                   }
