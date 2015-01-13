@@ -249,14 +249,12 @@ namespace NavierStokes
     }
     std::cout << "assembled the reduced boundary matrix." << std::endl;
 
-    {
-      POD::NavierStokes::create_reduced_advective_linearization
+    POD::NavierStokes::create_reduced_advective_linearization
       (*dof_handler, sparsity_pattern, quad, *mean_vector, *pod_vectors,
        convection_matrix_0);
-      POD::NavierStokes::create_reduced_gradient_linearization
+    POD::NavierStokes::create_reduced_gradient_linearization
       (*dof_handler, sparsity_pattern, quad, *mean_vector, *pod_vectors,
        convection_matrix_1);
-    }
     std::cout << "assembled the two convection matrices." << std::endl;
     for (unsigned int pod_vector_n = 0; pod_vector_n < n_pod_dofs; ++pod_vector_n)
       {

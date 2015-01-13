@@ -31,7 +31,6 @@ namespace POD
 {
   constexpr double NaN = std::numeric_limits<double>::quiet_NaN();
 
-
   namespace NavierStokes
   {
     class NavierStokesRHS : public ODE::NonlinearOperatorBase
@@ -65,6 +64,14 @@ namespace POD
       LAPACKFullMatrix<double> factorized_filter_matrix;
     };
 
+
+    // The `static_cast` is dumb, but necessary to make the compiler
+    // happy. There is surely a better way to do this with block sparse
+    // matrices.
+    template<int dim>
+    using ArrayArray
+    = std::array<std::array<SparseMatrix<double>, static_cast<size_t>(dim)>,
+    static_cast<size_t>(dim)>;
 
     template<int dim>
     double trilinearity_term(
@@ -147,10 +154,8 @@ namespace POD
     (const DoFHandler<dim>     &dof_handler,
      const QGauss<dim>         &quad,
      const BlockVector<double> &solution,
-     // The `static_cast` is dumb, but necessary to make the compiler happy.
-     std::array<SparseMatrix<double>, static_cast<size_t>(dim)> &gradient)
+     ArrayArray<dim> &gradient)
     {
-      ExcInternalError();
       auto &fe = dof_handler.get_fe();
       const unsigned int dofs_per_cell = fe.dofs_per_cell;
       FullMatrix<double> cell_matrix(dofs_per_cell, dofs_per_cell);
@@ -169,43 +174,41 @@ namespace POD
           fe_values.reinit(cell);
           cell->get_dof_indices(local_indices);
 
-          for (unsigned int derivative_n = 0; derivative_n < dim; ++derivative_n)
+          for (unsigned int row_n = 0; row_n < gradient.size(); ++row_n)
             {
-              cell_matrix = 0.0;
-              local_gradient_values = 0.0;
-              for (unsigned int q = 0; q < quad.size(); ++q)
+              for (unsigned int derivative_n = 0; derivative_n < gradient[0].size();
+                   ++derivative_n)
                 {
-                  for (unsigned int i = 0; i < dofs_per_cell; ++i)
+                  // evaluate the derivative of the row component of the solution.
+                  cell_matrix = 0.0;
+                  local_gradient_values = 0.0;
+                  for (unsigned int q = 0; q < quad.size(); ++q)
                     {
-                      for (unsigned int dim_n = 0; dim_n < dim; ++dim_n)
+                      for (unsigned int i = 0; i < dofs_per_cell; ++i)
                         {
                           local_gradient_values[q] +=
-                            solution.block(dim_n)[local_indices[i]]
+                            solution.block(row_n)[local_indices[i]]
                             *fe_values.shape_grad(i, q)[derivative_n];
                         }
+                      for (unsigned int i = 0; i < dofs_per_cell; ++i)
+                        {
+                          for (unsigned int j = 0; j < dofs_per_cell; ++j)
+                            {
+                              cell_matrix(i, j) += fe_values.shape_value(i, q)
+                                                   *fe_values.shape_value(j, q)
+                                                   *local_gradient_values[q]
+                                                   *fe_values.JxW(q);
+                            }
+                        }
                     }
-                }
 
-              for (unsigned int q = 0; q < quad.size(); ++q)
-                {
                   for (unsigned int i = 0; i < dofs_per_cell; ++i)
                     {
                       for (unsigned int j = 0; j < dofs_per_cell; ++j)
                         {
-                          cell_matrix(i, j) +=
-                            fe_values.shape_value(i, q)
-                            *local_gradient_values[q]
-                            *fe_values.shape_value(j, q)
-                            *fe_values.JxW(q);
+                          gradient[row_n][derivative_n].add
+                          (local_indices[i], local_indices[j], cell_matrix(i, j));
                         }
-                    }
-                }
-              for (unsigned int i = 0; i < dofs_per_cell; ++i)
-                {
-                  for (unsigned int j = 0; j < dofs_per_cell; ++j)
-                    {
-                      gradient[derivative_n].add
-                      (local_indices[i], local_indices[j], cell_matrix(i, j));
                     }
                 }
             }
@@ -364,16 +367,38 @@ namespace POD
      const std::vector<BlockVector<double>> &pod_vectors,
      FullMatrix<double>                     &gradient)
     {
+      ArrayArray<dim> gradient_matrices;
+      for (auto &row : gradient_matrices)
+        {
+          for (auto &matrix : row)
+            {
+              matrix.reinit(sparsity_pattern);
+            }
+        }
+      create_gradient_linearization(dof_handler, quad, solution,
+                                    gradient_matrices);
       gradient.reinit(pod_vectors.size(), pod_vectors.size());
 
       BlockVector<double> temp(dim, pod_vectors.at(0).block(0).size());
-      #pragma omp parallel for
-      for (unsigned int i = 0; i < pod_vectors.size(); ++i)
+      for (unsigned int j = 0; j < pod_vectors.size(); ++j)
         {
-          for (unsigned int j = 0; j < pod_vectors.size(); ++j)
+          temp = 0.0;
+          auto &rhs_vector = pod_vectors.at(j);
+          for (unsigned int row_n = 0; row_n < gradient_matrices.size();
+               ++row_n)
             {
-              gradient(i, j) = trilinearity_term(quad, dof_handler,
-                  pod_vectors.at(i), pod_vectors.at(j), solution);
+              for (unsigned int column_n = 0;
+                   column_n < gradient_matrices[0].size();
+                   ++column_n)
+                {
+                  gradient_matrices[row_n][column_n].vmult_add
+                  (temp.block(row_n), rhs_vector.block(column_n));
+                }
+            }
+          for (unsigned int i = 0; i < pod_vectors.size(); ++i)
+            {
+              auto &lhs_vector = pod_vectors.at(i);
+              gradient(i, j) = lhs_vector * temp;
             }
         }
     }

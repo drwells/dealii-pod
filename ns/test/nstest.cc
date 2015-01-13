@@ -185,9 +185,9 @@ void test_reduced_gradient_linearization
       for (unsigned int j = 0; j < n_pod_vectors; ++j)
         {
           gradient2(i, j) = trilinearity_term(quad, dof_handler,
-                                               pod_vectors.at(i),
-                                               pod_vectors.at(j),
-                                               pod_vectors.at(0));
+                                              pod_vectors.at(i),
+                                              pod_vectors.at(j),
+                                              pod_vectors.at(0));
         }
     }
   gradient.add(-1.0, gradient2);
@@ -204,24 +204,24 @@ void test_reduced_nonlinearity
   QGauss<dim> quad(5);
   std::vector<FullMatrix<double>> nonlinear_operator;
   create_reduced_nonlinearity(dof_handler, sparsity_pattern, quad,
-      pod_vectors, nonlinear_operator);
+                              pod_vectors, nonlinear_operator);
 
   FullMatrix<double> linearization(pod_vectors.size());
   for (unsigned int i = 0; i < pod_vectors.size(); ++i)
-  {
+    {
       for (unsigned int j = 0; j < pod_vectors.size(); ++j)
-      {
+        {
           for (unsigned int k = 0; k < pod_vectors.size(); ++k)
-          {
-            linearization(j, k) = trilinearity_term(quad,
-                dof_handler, pod_vectors.at(i), pod_vectors.at(j), 
-                pod_vectors.at(k));
-          }
-      }
-    linearization.add(-1.0, nonlinear_operator.at(i));
-    std::cout << "nonlinear error on hyper row " << i << " :" 
-    << linearization.l1_norm() << std::endl;
-  }
+            {
+              linearization(j, k) =
+                trilinearity_term(quad, dof_handler, pod_vectors.at(i),
+                                  pod_vectors.at(j), pod_vectors.at(k));
+            }
+        }
+      linearization.add(-1.0, nonlinear_operator.at(i));
+      std::cout << "nonlinear error on hyper row " << i << " :"
+                << linearization.l1_norm() << std::endl;
+    }
 }
 
 
@@ -232,20 +232,31 @@ void test_gradient_linearization
  const std::vector<BlockVector<double>> &chebyshev_vectors)
 {
   QGauss<dim> quad (5);
-  std::array<SparseMatrix<double>, static_cast<size_t>(dim)> gradient_matrices;
-  for (auto &gradient_matrix : gradient_matrices)
+  ArrayArray<dim> gradient_matrices;
+  for (auto &row : gradient_matrices)
     {
-      gradient_matrix.reinit(sparsity_pattern);
+      for (auto &matrix : row)
+        {
+          matrix.reinit(sparsity_pattern);
+        }
     }
   create_gradient_linearization(dof_handler, quad, chebyshev_vectors.at(2),
                                 gradient_matrices);
-  double result = 0.0;
-  Vector<double> temp(chebyshev_vectors.at(0).block(0).size());
-  for (unsigned int dim_n = 0; dim_n < dim; ++dim_n)
+  BlockVector<double> temp(chebyshev_vectors.at(0).n_blocks(),
+                           chebyshev_vectors.at(0).block(0).size());
+
+  auto &lhs_vector = chebyshev_vectors.at(0);
+  auto &rhs_vector = chebyshev_vectors.at(1);
+  for (unsigned int row_n = 0; row_n < gradient_matrices.size(); ++row_n)
     {
-      gradient_matrices[dim_n].vmult(temp, chebyshev_vectors.at(1).block(dim_n));
-      result += chebyshev_vectors.at(0).block(dim_n) * temp;
+      for (unsigned int column_n = 0; column_n < gradient_matrices[0].size();
+           ++column_n)
+        {
+          gradient_matrices[row_n][column_n].vmult_add
+          (temp.block(row_n), rhs_vector.block(column_n));
+        }
     }
+  double result = lhs_vector * temp;
   std::cout << "gradient integral value is " << result << std::endl;
   std::cout << "expected value is          " << -1.48871 << std::endl;
 }
