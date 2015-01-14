@@ -141,7 +141,6 @@ namespace NavierStokes
   {
     FullMatrix<double> convection_matrix_0;
     FullMatrix<double> convection_matrix_1;
-    std::cout << "DoFs: " << dof_handler->n_dofs() << std::endl;
 
     CompressedSparsityPattern c_sparsity(dof_handler->n_dofs());
     DoFTools::make_sparsity_pattern(*dof_handler, c_sparsity);
@@ -229,9 +228,11 @@ namespace NavierStokes
     linear_operator.add(1.0/reynolds_n, boundary_matrix);
     linear_operator.add(-1.0, convection_matrix_0);
     linear_operator.add(-1.0, convection_matrix_1);
+    std::cout << "assembled all affine terms." << std::endl;
 
     POD::NavierStokes::create_reduced_nonlinearity
     (*dof_handler, sparsity_pattern, quad, *pod_vectors, nonlinear_operator);
+    std::cout << "assembled the nonlinearity." << std::endl;
   }
 
 
