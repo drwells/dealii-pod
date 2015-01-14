@@ -215,6 +215,7 @@ namespace NavierStokes
       (*dof_handler, sparsity_pattern, quad, *mean_vector, *pod_vectors,
        convection_matrix_1);
     std::cout << "assembled the two convection matrices." << std::endl;
+    #pragma omp parallel for
     for (unsigned int pod_vector_n = 0; pod_vector_n < n_pod_dofs; ++pod_vector_n)
       {
         mean_contribution_vector(pod_vector_n) -=

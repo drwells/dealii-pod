@@ -307,13 +307,13 @@ namespace POD
           nonlinear_operator.emplace_back(n_pod_dofs);
         }
 
+      #pragma omp parallel for
       for (unsigned int j = 0; j < n_pod_dofs; ++j)
         {
           BlockVector<double> temp(dim, n_dofs);
           SparseMatrix<double> full_advection(sparsity_pattern);
           create_advective_linearization(dof_handler, quad, pod_vectors.at(j),
                                          full_advection);
-          #pragma omp parallel for firstprivate(temp)
           for (unsigned int k = 0; k < n_pod_dofs; ++k)
             {
               for (unsigned int dim_n = 0; dim_n < dim; ++dim_n)

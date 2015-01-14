@@ -203,14 +203,12 @@ namespace POD
     Vector<double> temp(n_dofs);
     for (auto dim_n : dims)
       {
-        for (unsigned int row = 0; row < n_pod_dofs; ++row)
+        for (unsigned int column = 0; column < n_pod_dofs; ++column)
           {
-            auto &left_vector = pod_vectors[row].block(dim_n);
-            for (unsigned int column = 0; column < n_pod_dofs; ++column)
+            full_matrix.vmult(temp, pod_vectors.at(column).block(dim_n));
+            for (unsigned int row = 0; row < n_pod_dofs; ++row)
               {
-                auto &right_vector = pod_vectors[column].block(dim_n);
-                full_matrix.vmult(temp, right_vector);
-                rom_matrix(row, column) += left_vector*temp;
+                rom_matrix(row, column) += pod_vectors.at(row).block(dim_n) * temp;
               }
           }
       }
