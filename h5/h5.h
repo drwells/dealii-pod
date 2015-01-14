@@ -23,6 +23,7 @@
 #include <deal.II/base/utilities.h>
 #include <deal.II/lac/vector.h>
 #include <deal.II/lac/block_vector.h>
+#include <deal.II/lac/full_matrix.h>
 
 #include <fstream>
 #include <iostream>
@@ -144,6 +145,30 @@ namespace H5
         H5Dclose(dataset_id);
         H5Sclose(dataspace_id);
       }
+    H5Fclose(file_id);
+  }
+
+  // TODO it should be possible to parameterize this by type.
+  template<typename T>
+  void save_full_matrix(std::string file_name,
+                         dealii::FullMatrix<T> &matrix)
+  // Save a deal.II full matrix.
+  {
+    hid_t file_id = H5Fcreate(file_name.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT,
+                              H5P_DEFAULT);
+    hsize_t dims[2];
+
+    dims[0] = matrix.m();
+    dims[1] = matrix.n();
+    hid_t dataspace_id = H5Screate_simple(2, dims, nullptr);
+    std::string dataset_name = "/a";
+    hid_t dataset_id = H5Dcreate2(file_id, dataset_name.c_str(),
+                                  H5T_NATIVE_DOUBLE, dataspace_id,
+                                  H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT,
+             &matrix(0, 0));
+    H5Dclose(dataset_id);
+    H5Sclose(dataspace_id);
     H5Fclose(file_id);
   }
 }
