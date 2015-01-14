@@ -55,12 +55,14 @@ namespace POD
       NavierStokesLerayRegularizationRHS
       (FullMatrix<double> linear_operator,
        FullMatrix<double> mass_matrix,
+       FullMatrix<double> boundary_matrix,
        FullMatrix<double> laplace_matrix,
        std::vector<FullMatrix<double>> nonlinear_operator,
        Vector<double> mean_contribution,
        double filter_radius);
       void apply(Vector<double> &dst, const Vector<double> &src) override;
     private:
+      FullMatrix<double> mass_matrix;
       LAPACKFullMatrix<double> factorized_filter_matrix;
     };
 

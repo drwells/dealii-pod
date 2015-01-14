@@ -92,6 +92,7 @@ namespace NavierStokes
     bool                             renumber;
 
     FullMatrix<double>               mass_matrix;
+    FullMatrix<double>               boundary_matrix;
     FullMatrix<double>               laplace_matrix;
     FullMatrix<double>               linear_operator;
     std::vector<FullMatrix<double>>  nonlinear_operator;
@@ -179,7 +180,6 @@ namespace NavierStokes
   template<int dim>
   void ROM<dim>::setup_reduced_system()
   {
-    FullMatrix<double> boundary_matrix;
     FullMatrix<double> convection_matrix_0;
     FullMatrix<double> convection_matrix_1;
     std::cout << "DoFs: " << dof_handler->n_dofs() << std::endl;
@@ -281,9 +281,10 @@ namespace NavierStokes
     Vector<double> old_solution(solution);
     std::unique_ptr<POD::NavierStokes::NavierStokesLerayRegularizationRHS>
     rhs_function(new POD::NavierStokes::NavierStokesLerayRegularizationRHS
-                 (linear_operator, mass_matrix, laplace_matrix, nonlinear_operator,
-                  mean_contribution_vector, filter_radius));
+                 (linear_operator, mass_matrix, boundary_matrix, laplace_matrix,
+                  nonlinear_operator, mean_contribution_vector, filter_radius));
     ODE::RungeKutta4 rk_method(std::move(rhs_function));
+
     while (time < final_time)
       {
         old_solution = solution;
