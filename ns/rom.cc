@@ -22,7 +22,6 @@
 
 #include <deal.II/dofs/dof_handler.h>
 #include <deal.II/dofs/dof_tools.h>
-#include <deal.II/dofs/dof_renumbering.h>
 
 #include <deal.II/grid/tria.h>
 
@@ -38,15 +37,12 @@
 
 #include <deal.II/numerics/matrix_tools.h>
 
-#include <deal.II/bundled/boost/archive/text_iarchive.hpp>
-// needed to get around the "save the dof handler issue"
-#include <deal.II/dofs/dof_faces.h>
-#include <deal.II/dofs/dof_levels.h>
+#include <deal.II/bundled/boost/lexical_cast.hpp>
+#include <deal.II/bundled/boost/math/special_functions/round.hpp>
 
-#include <fstream>
 #include <iostream>
-#include <glob.h>
 #include <memory>
+#include <vector>
 
 #include "../h5/h5.h"
 #include "../pod/pod.h"
@@ -79,8 +75,7 @@ namespace NavierStokes
     void run();
 
   private:
-    void load_mesh();
-    void load_vectors();
+    void setup_vectors_and_dof_handler();
     void setup_reduced_system();
     void time_iterate();
 
@@ -108,9 +103,6 @@ namespace NavierStokes
     double                           time;
     unsigned int                     timestep_number;
     double                           reynolds_n;
-
-    bool                             output_initialized;
-    POD::PODOutput<dim>              output;
   };
 
 
@@ -126,54 +118,21 @@ namespace NavierStokes
   mean_vector {new BlockVector<double>},
   time(initial_time),
   timestep_number(0),
-  reynolds_n(re), // TODO unhardcode this.
-  output_initialized(false)
+  reynolds_n(re) // TODO unhardcode this.
   {}
 
 
   template<int dim>
-  void ROM<dim>::load_mesh()
-  {
-    std::string triangulation_file_name = "triangulation.txt";
-    std::filebuf file_buffer;
-    file_buffer.open (triangulation_file_name, std::ios::in);
-    std::istream in_stream (&file_buffer);
-    boost::archive::text_iarchive archive(in_stream);
-    archive >> triangulation;
-    dof_handler->initialize(triangulation, fe);
-    if (renumber)
-      {
-        std::cout << "renumbering." << std::endl;
-        DoFRenumbering::boost::Cuthill_McKee (*dof_handler);
-      }
-  }
-
-
-  template<int dim>
-  void ROM<dim>::load_vectors()
+  void ROM<dim>::setup_vectors_and_dof_handler()
   {
     // TODO un-hardcode these values
-    std::string pod_vector_glob("pod-vector-*.h5");
-    std::string mean_vector_file_name("mean-vector.h5");
+    POD::load_pod_basis("pod-vector-*.h5", "mean-vector.h5", *mean_vector,
+                        *pod_vectors);
+    POD::create_dof_handler_from_triangulation_file
+      ("triangulation.txt", renumber, fe, *dof_handler, triangulation);
 
-    glob_t glob_result;
-    glob(pod_vector_glob.c_str(), GLOB_TILDE, nullptr, &glob_result);
-    pod_vectors->resize(glob_result.gl_pathc);
-    for (unsigned int i = 0; i < glob_result.gl_pathc; ++i)
-      {
-        BlockVector<double> pod_vector;
-        std::string file_name(glob_result.gl_pathv[i]);
-        auto start_number = file_name.find_first_of('0');
-        auto end_number = file_name.find_first_of('.');
-        unsigned int pod_vector_n = Utilities::string_to_int
-                                    (file_name.substr(start_number, end_number - start_number));
-        H5::load_block_vector(file_name, pod_vector);
-        pod_vectors->at(pod_vector_n) = std::move(pod_vector);
-      }
-    H5::load_block_vector(mean_vector_file_name, *mean_vector);
     n_dofs = pod_vectors->at(0).block(0).size();
     n_pod_dofs = pod_vectors->size();
-    globfree(&glob_result);
   }
 
 
@@ -285,6 +244,10 @@ namespace NavierStokes
                   nonlinear_operator, mean_contribution_vector, filter_radius));
     ODE::RungeKutta4 rk_method(std::move(rhs_function));
 
+    int n_save_steps = boost::math::iround
+      ((final_time - initial_time)/time_step)/output_interval;
+    FullMatrix<double> solutions(n_save_steps + 1, n_pod_dofs);
+    unsigned int output_n = 0;
     while (time < final_time)
       {
         old_solution = solution;
@@ -292,25 +255,28 @@ namespace NavierStokes
 
         if (timestep_number % output_interval == 0)
           {
-            if (!output_initialized)
+            for (unsigned int i = 0; i < n_pod_dofs; ++i)
               {
-                output_initialized = true;
-                output.reinit(dof_handler, mean_vector, pod_vectors, "solution-");
+                solutions(output_n, i) = solution(i);
               }
-            output.save_solution(solution, time, timestep_number, save_plot_pictures);
-
+            ++output_n;
           }
         ++timestep_number;
         time += time_step;
       }
+
+    std::string outname = "pod-leray-radius-"
+      + boost::lexical_cast<std::string>(filter_radius)
+      + "-r-" + boost::lexical_cast<std::string>(n_pod_dofs)
+      + ".h5";
+    H5::save_full_matrix(outname, solutions);
   }
 
 
   template<int dim>
   void ROM<dim>::run()
   {
-    load_mesh();
-    load_vectors();
+    setup_vectors_and_dof_handler();
     setup_reduced_system();
     time_iterate();
   }

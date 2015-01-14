@@ -1,9 +1,12 @@
 #ifndef __deal2__pod_h
 #define __deal2__pod_h
 #include <deal.II/dofs/dof_handler.h>
+#include <deal.II/dofs/dof_renumbering.h>
 
 #include <deal.II/fe/fe_q.h>
 #include <deal.II/fe/fe_system.h>
+
+#include <deal.II/grid/tria.h>
 
 #include <deal.II/lac/lapack_full_matrix.h>
 #include <deal.II/lac/sparse_matrix.h>
@@ -12,9 +15,16 @@
 
 #include <deal.II/numerics/data_out.h>
 
+#include <deal.II/bundled/boost/archive/text_iarchive.hpp>
+// needed to get around the "save the dof handler issue"
+#include <deal.II/dofs/dof_faces.h>
+#include <deal.II/dofs/dof_levels.h>
+
 #include <algorithm>
 #include <cmath>
 #include <complex>
+#include <fstream>
+#include <glob.h>
 #include <iostream>
 #include <memory>
 #include <vector>
@@ -198,6 +208,31 @@ namespace POD
       }
   }
 
+
+  template<int dim>
+  void create_dof_handler_from_triangulation_file
+  (const std::string &file_name,
+   const bool &renumber,
+   const FE_Q<dim> &fe,
+   DoFHandler<dim> &dof_handler,
+   Triangulation<dim> &triangulation)
+  {
+    std::filebuf file_buffer;
+    file_buffer.open(file_name, std::ios::in);
+    std::istream in_stream (&file_buffer);
+    boost::archive::text_iarchive archive(in_stream);
+    archive >> triangulation;
+    dof_handler.initialize(triangulation, fe);
+    if (renumber)
+      {
+        DoFRenumbering::boost::Cuthill_McKee(dof_handler);
+      }
+  }
+
+  void load_pod_basis(const std::string &pod_vector_glob,
+                      const std::string &mean_vector_file_name,
+                      BlockVector<double> &mean_vector,
+                      std::vector<BlockVector<double>> &pod_vectors);
 
   void method_of_snapshots(dealii::SparseMatrix<double> &mass_matrix,
                            std::vector<std::string> &snapshot_file_names,
