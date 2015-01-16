@@ -224,9 +224,6 @@ namespace POD
                                         const BlockVector<double> &solution,
                                         SparseMatrix<double>      &advection)
     {
-      // This function passes (simple) tests but gives wrong results in
-      // practice. I do not yet know why.
-      ExcInternalError();
       auto &fe = dof_handler.get_fe();
       const unsigned int dofs_per_cell = fe.dofs_per_cell;
       FullMatrix<double> cell_matrix(dofs_per_cell, dofs_per_cell);
@@ -298,9 +295,9 @@ namespace POD
      const std::vector<BlockVector<double>> &pod_vectors,
      std::vector<FullMatrix<double>>        &nonlinear_operator)
     {
-        create_reduced_nonlinearity
-          (dof_handler, sparsity_pattern, quad, pod_vectors, pod_vectors,
-           nonlinear_operator);
+      create_reduced_nonlinearity
+      (dof_handler, sparsity_pattern, quad, pod_vectors, pod_vectors,
+       nonlinear_operator);
     }
 
     template<int dim>
@@ -326,7 +323,7 @@ namespace POD
           BlockVector<double> temp(dim, n_dofs);
           SparseMatrix<double> full_advection(sparsity_pattern);
           create_advective_linearization
-            (dof_handler, quad, filtered_pod_vectors.at(j), full_advection);
+          (dof_handler, quad, filtered_pod_vectors.at(j), full_advection);
           for (unsigned int k = 0; k < n_pod_dofs; ++k)
             {
               for (unsigned int dim_n = 0; dim_n < dim; ++dim_n)
@@ -355,7 +352,7 @@ namespace POD
     {
       SparseMatrix<double> full_advection(sparsity_pattern);
       create_advective_linearization
-        (dof_handler, quad, filtered_solution, full_advection);
+      (dof_handler, quad, filtered_solution, full_advection);
       contribution.reinit(pod_vectors.size());
 
       BlockVector<double> right_vector(dim, pod_vectors.at(0).block(0).size());
@@ -414,8 +411,8 @@ namespace POD
      FullMatrix<double>                     &gradient)
     {
       create_reduced_gradient_linearization
-        (dof_handler, sparsity_pattern, quad, solution, pod_vectors,
-         pod_vectors, gradient);
+      (dof_handler, sparsity_pattern, quad, solution, pod_vectors,
+       pod_vectors, gradient);
     }
 
 
