@@ -183,10 +183,12 @@ namespace NavierStokes
       for (unsigned int dim_n = 0; dim_n < dim; ++dim_n)
         {
           Vector<double> temp(n_dofs);
-          for (unsigned int pod_vector_n = 0; pod_vector_n < n_pod_dofs; ++ pod_vector_n)
+          full_mass_matrix.vmult(temp, centered_initial.block(dim_n));
+          for (unsigned int pod_vector_n = 0; pod_vector_n < n_pod_dofs;
+               ++pod_vector_n)
             {
-              full_mass_matrix.vmult(temp, centered_initial.block(dim_n));
-              solution[pod_vector_n] += temp * pod_vectors->at(pod_vector_n).block(dim_n);
+              solution[pod_vector_n] +=
+                temp * pod_vectors->at(pod_vector_n).block(dim_n);
             }
         }
     }
