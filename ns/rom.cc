@@ -44,6 +44,7 @@
 #include <memory>
 #include <vector>
 
+#include "filter.h"
 #include "../h5/h5.h"
 #include "../pod/pod.h"
 #include "../ode/ode.h"
@@ -98,6 +99,8 @@ namespace NavierStokes
 
     std::shared_ptr<std::vector<BlockVector<double>>> pod_vectors;
     std::shared_ptr<BlockVector<double>>              mean_vector;
+    std::vector<BlockVector<double>> filtered_pod_vectors;
+    BlockVector<double>              filtered_mean_vector;
     Vector<double>                   solution;
 
     double                           time;
@@ -133,6 +136,31 @@ namespace NavierStokes
 
     n_dofs = pod_vectors->at(0).block(0).size();
     n_pod_dofs = pod_vectors->size();
+
+    CompressedSparsityPattern c_sparsity(dof_handler->n_dofs());
+    DoFTools::make_sparsity_pattern(*dof_handler, c_sparsity);
+    sparsity_pattern.copy_from(c_sparsity);
+
+    std::shared_ptr<SparseMatrix<double>> full_mass_matrix {new SparseMatrix<double>};
+    full_mass_matrix->reinit(sparsity_pattern);
+    SparseMatrix<double> full_laplace_matrix(sparsity_pattern);
+    SparseMatrix<double> full_boundary_matrix(sparsity_pattern);
+    QGauss<dim - 1> face_quad(fe.degree + 3);
+    MatrixCreator::create_mass_matrix(*dof_handler, quad, *full_mass_matrix);
+    MatrixCreator::create_laplace_matrix(*dof_handler, quad, full_laplace_matrix);
+    POD::NavierStokes::create_boundary_matrix
+      (*dof_handler, face_quad, outflow_label, full_boundary_matrix);
+
+    Leray::LerayFilter filter
+      (filter_radius, full_mass_matrix, full_boundary_matrix, full_laplace_matrix);
+    filter.apply(filtered_mean_vector, *mean_vector);
+    filtered_pod_vectors.resize(n_pod_dofs);
+    for (unsigned int pod_vector_n = 0; pod_vector_n < n_pod_dofs; ++pod_vector_n)
+      {
+        filter.apply(filtered_pod_vectors.at(pod_vector_n),
+                     pod_vectors->at(pod_vector_n));
+      }
+    std::cout << "finished filtering." << std::endl;
   }
 
 
@@ -141,10 +169,6 @@ namespace NavierStokes
   {
     FullMatrix<double> convection_matrix_0;
     FullMatrix<double> convection_matrix_1;
-
-    CompressedSparsityPattern c_sparsity(dof_handler->n_dofs());
-    DoFTools::make_sparsity_pattern(*dof_handler, c_sparsity);
-    sparsity_pattern.copy_from(c_sparsity);
 
     {
       SparseMatrix<double> full_mass_matrix(sparsity_pattern);
@@ -208,20 +232,17 @@ namespace NavierStokes
     std::cout << "assembled the reduced boundary matrix." << std::endl;
 
     POD::NavierStokes::create_reduced_advective_linearization
-      (*dof_handler, sparsity_pattern, quad, *mean_vector, *pod_vectors,
+      (*dof_handler, sparsity_pattern, quad, filtered_mean_vector, *pod_vectors,
        convection_matrix_0);
     POD::NavierStokes::create_reduced_gradient_linearization
       (*dof_handler, sparsity_pattern, quad, *mean_vector, *pod_vectors,
-       convection_matrix_1);
+       filtered_pod_vectors, convection_matrix_1);
     std::cout << "assembled the two convection matrices." << std::endl;
-    #pragma omp parallel for
-    for (unsigned int pod_vector_n = 0; pod_vector_n < n_pod_dofs; ++pod_vector_n)
-      {
-        mean_contribution_vector(pod_vector_n) -=
-          POD::NavierStokes::trilinearity_term
-          (quad, *dof_handler, pod_vectors->at(pod_vector_n), *mean_vector,
-           *mean_vector);
-      }
+    Vector<double> nonlinear_contribution(n_pod_dofs);
+    POD::NavierStokes::create_nonlinear_centered_contribution
+      (*dof_handler, sparsity_pattern, quad, filtered_mean_vector, *mean_vector,
+       *pod_vectors, nonlinear_contribution);
+    mean_contribution_vector.add(-1.0, nonlinear_contribution);
 
     linear_operator.reinit(n_pod_dofs, n_pod_dofs);
     linear_operator.add(-1.0/reynolds_n, laplace_matrix);
@@ -231,7 +252,8 @@ namespace NavierStokes
     std::cout << "assembled all affine terms." << std::endl;
 
     POD::NavierStokes::create_reduced_nonlinearity
-    (*dof_handler, sparsity_pattern, quad, *pod_vectors, nonlinear_operator);
+      (*dof_handler, sparsity_pattern, quad, *pod_vectors, filtered_pod_vectors,
+       nonlinear_operator);
     std::cout << "assembled the nonlinearity." << std::endl;
   }
 
@@ -240,10 +262,10 @@ namespace NavierStokes
   void ROM<dim>::time_iterate()
   {
     Vector<double> old_solution(solution);
-    std::unique_ptr<POD::NavierStokes::NavierStokesLerayRegularizationRHS>
-    rhs_function(new POD::NavierStokes::NavierStokesLerayRegularizationRHS
-                 (linear_operator, mass_matrix, boundary_matrix, laplace_matrix,
-                  nonlinear_operator, mean_contribution_vector, filter_radius));
+    std::unique_ptr<POD::NavierStokes::NavierStokesRHS>
+    rhs_function(new POD::NavierStokes::NavierStokesRHS
+                 (linear_operator, mass_matrix, nonlinear_operator,
+                  mean_contribution_vector));
     ODE::RungeKutta4 rk_method(std::move(rhs_function));
 
     int n_save_steps = boost::math::iround

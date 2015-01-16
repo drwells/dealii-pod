@@ -290,6 +290,18 @@ namespace POD
         }
     }
 
+    template<int dim>
+    void create_reduced_nonlinearity
+    (const DoFHandler<dim>                  &dof_handler,
+     const SparsityPattern                  &sparsity_pattern,
+     const QGauss<dim>                      &quad,
+     const std::vector<BlockVector<double>> &pod_vectors,
+     std::vector<FullMatrix<double>>        &nonlinear_operator)
+    {
+        create_reduced_nonlinearity
+          (dof_handler, sparsity_pattern, quad, pod_vectors, pod_vectors,
+           nonlinear_operator);
+    }
 
     template<int dim>
     void create_reduced_nonlinearity
@@ -297,6 +309,7 @@ namespace POD
      const SparsityPattern                  &sparsity_pattern,
      const QGauss<dim>                      &quad,
      const std::vector<BlockVector<double>> &pod_vectors,
+     const std::vector<BlockVector<double>> &filtered_pod_vectors,
      std::vector<FullMatrix<double>>        &nonlinear_operator)
     {
       const unsigned int n_pod_dofs = pod_vectors.size();
@@ -312,8 +325,8 @@ namespace POD
         {
           BlockVector<double> temp(dim, n_dofs);
           SparseMatrix<double> full_advection(sparsity_pattern);
-          create_advective_linearization(dof_handler, quad, pod_vectors.at(j),
-                                         full_advection);
+          create_advective_linearization
+            (dof_handler, quad, filtered_pod_vectors.at(j), full_advection);
           for (unsigned int k = 0; k < n_pod_dofs; ++k)
             {
               for (unsigned int dim_n = 0; dim_n < dim; ++dim_n)
@@ -325,6 +338,37 @@ namespace POD
                 {
                   nonlinear_operator[i](j, k) = pod_vectors.at(i)*temp;
                 }
+            }
+        }
+    }
+
+
+    template<int dim>
+    void create_nonlinear_centered_contribution
+    (const DoFHandler<dim>            &dof_handler,
+     const SparsityPattern            &sparsity_pattern,
+     const QGauss<dim>                &quad,
+     BlockVector<double>              &filtered_solution,
+     BlockVector<double>              &solution,
+     std::vector<BlockVector<double>> &pod_vectors,
+     Vector<double>                   &contribution)
+    {
+      SparseMatrix<double> full_advection(sparsity_pattern);
+      create_advective_linearization
+        (dof_handler, quad, filtered_solution, full_advection);
+      contribution.reinit(pod_vectors.size());
+
+      BlockVector<double> right_vector(dim, pod_vectors.at(0).block(0).size());
+      for (unsigned int dim_n = 0; dim_n < dim; ++dim_n)
+        {
+          full_advection.vmult(right_vector.block(dim_n), solution.block(dim_n));
+        }
+      for (unsigned int row = 0; row < pod_vectors.size(); ++row)
+        {
+          for (unsigned int dim_n = 0; dim_n < dim; ++dim_n)
+            {
+              contribution[row] +=
+                pod_vectors.at(row).block(dim_n)*right_vector.block(dim_n);
             }
         }
     }
@@ -369,6 +413,22 @@ namespace POD
      const std::vector<BlockVector<double>> &pod_vectors,
      FullMatrix<double>                     &gradient)
     {
+      create_reduced_gradient_linearization
+        (dof_handler, sparsity_pattern, quad, solution, pod_vectors,
+         pod_vectors, gradient);
+    }
+
+
+    template<int dim>
+    void create_reduced_gradient_linearization
+    (const DoFHandler<dim>                  &dof_handler,
+     const SparsityPattern                  &sparsity_pattern,
+     const QGauss<dim>                      &quad,
+     const BlockVector<double>              &solution,
+     const std::vector<BlockVector<double>> &pod_vectors,
+     const std::vector<BlockVector<double>> &filtered_pod_vectors,
+     FullMatrix<double>                     &gradient)
+    {
       ArrayArray<dim> gradient_matrices;
       for (auto &row : gradient_matrices)
         {
@@ -385,7 +445,7 @@ namespace POD
       for (unsigned int j = 0; j < pod_vectors.size(); ++j)
         {
           temp = 0.0;
-          auto &rhs_vector = pod_vectors.at(j);
+          auto &rhs_vector = filtered_pod_vectors.at(j);
           for (unsigned int row_n = 0; row_n < gradient_matrices.size();
                ++row_n)
             {
