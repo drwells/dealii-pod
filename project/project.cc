@@ -76,13 +76,13 @@ int main(int argc, char **argv)
     glob(snapshot_glob.c_str(), GLOB_TILDE, nullptr, &glob_result);
     const unsigned int n_snapshots = glob_result.gl_pathc;
     std::cout << "n_snapshots is " << n_snapshots << std::endl;
-    std::vector<std::string> glob_results;
+    std::vector<std::string> file_names;
     for (unsigned int snapshot_n = 0; snapshot_n < glob_result.gl_pathc; ++snapshot_n)
       {
-        glob_results.push_back(std::string(glob_result.gl_pathv[snapshot_n]));
+        file_names.push_back(std::string(glob_result.gl_pathv[snapshot_n]));
       }
     globfree(&glob_result);
-    std::sort(glob_results.begin(), glob_results.end());
+    std::sort(file_names.begin(), file_names.end());
 
     FullMatrix<double> pod_coefficients_matrix(n_snapshots, n_pod_vectors);
     BlockVector<double> fluctuation_norms(1, n_snapshots);
