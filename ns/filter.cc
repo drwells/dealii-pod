@@ -23,7 +23,7 @@ namespace Leray
   void LerayFilter::apply
   (BlockVector<double> &dst, const BlockVector<double> &src)
   {
-    SolverControl solver_control(2000);
+    SolverControl solver_control(4000);
     SolverGMRES<Vector<double>> solver (solver_control);
     dst.reinit(src.n_blocks(), src.block(0).size());
 
