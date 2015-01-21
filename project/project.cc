@@ -112,6 +112,8 @@ int main(int argc, char **argv)
           }
         fluctuations[snapshot_n] = sqrt(fluctuations[snapshot_n]);
       }
-    std::string out_file_name("projected-pod-coefficients.h5");
-    H5::save_full_matrix(out_file_name, pod_coefficients_matrix);
+    std::string projected_file_name("projected-pod-coefficients.h5");
+    H5::save_full_matrix(projected_file_name, pod_coefficients_matrix);
+    std::string fluctuation_norms_name("fluctuation-norms.h5");
+    H5::save_block_vector(fluctuation_norms_name, fluctuation_norms);
   }
