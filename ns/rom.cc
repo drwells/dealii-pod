@@ -354,7 +354,7 @@ int main(int argc, char **argv)
       {
         deallog.depth_console(0);
 
-        ROM<2> nse_solver(false);
+        ROM<3> nse_solver;
         nse_solver.run();
       }
     }
