@@ -34,6 +34,7 @@
 #include <algorithm>
 #include <glob.h>
 #include <iostream>
+#include <math.h>
 #include <vector>
 
 #include "../h5/h5.h"
@@ -84,9 +85,11 @@ int main(int argc, char **argv)
     std::sort(glob_results.begin(), glob_results.end());
 
     FullMatrix<double> pod_coefficients_matrix(n_snapshots, n_pod_vectors);
-    unsigned int snapshot_n = 0;
-    for (auto &file_name : glob_results)
+    BlockVector<double> fluctuation_norms(1, n_snapshots);
+    auto &fluctuations = fluctuation_norms.block(0);
+    for (unsigned int snapshot_n = 0; snapshot_n < file_names.size(); ++snapshot_n)
       {
+        auto &file_name = file_names[snapshot_n];
         BlockVector<double> snapshot;
         H5::load_block_vector(file_name, snapshot);
         snapshot -= mean_vector;
@@ -95,6 +98,7 @@ int main(int argc, char **argv)
         for (unsigned int dim_n = 0; dim_n < dim; ++dim_n)
           {
             full_mass_matrix.vmult(temp, snapshot.block(dim_n));
+            fluctuations[snapshot_n] += snapshot.block(dim_n) * temp;
             for (unsigned int pod_vector_n = 0; pod_vector_n < pod_vectors.size();
                  ++pod_vector_n)
               {
@@ -102,7 +106,7 @@ int main(int argc, char **argv)
                   temp * pod_vectors.at(pod_vector_n).block(dim_n);
               }
           }
-        ++snapshot_n;
+        fluctuations[snapshot_n] = sqrt(fluctuations[snapshot_n]);
       }
     std::string out_file_name("projected-pod-coefficients.h5");
     H5::save_full_matrix(out_file_name, pod_coefficients_matrix);
