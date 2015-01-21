@@ -33,13 +33,14 @@ namespace POD
 
   namespace NavierStokes
   {
-    class NavierStokesRHS : public ODE::NonlinearOperatorBase
+    class PlainRHS : public ODE::NonlinearOperatorBase
     {
     public:
-      NavierStokesRHS(FullMatrix<double> linear_operator,
-                      FullMatrix<double> mass_matrix,
-                      std::vector<FullMatrix<double>> nonlinear_operator,
-                      Vector<double> mean_contribution);
+      PlainRHS();
+      PlainRHS(FullMatrix<double> linear_operator,
+               FullMatrix<double> mass_matrix,
+               std::vector<FullMatrix<double>> nonlinear_operator,
+               Vector<double> mean_contribution);
       void apply(Vector<double> &dst, const Vector<double> &src) override;
     protected:
       FullMatrix<double> linear_operator;
@@ -49,10 +50,10 @@ namespace POD
     };
 
 
-    class NavierStokesLerayRegularizationRHS : public NavierStokesRHS
+    class PODDifferentialFilterRHS : public PlainRHS
     {
     public:
-      NavierStokesLerayRegularizationRHS
+      PODDifferentialFilterRHS
       (FullMatrix<double> linear_operator,
        FullMatrix<double> mass_matrix,
        FullMatrix<double> boundary_matrix,
@@ -64,6 +65,23 @@ namespace POD
     private:
       FullMatrix<double> mass_matrix;
       LAPACKFullMatrix<double> factorized_filter_matrix;
+    };
+
+
+    class L2ProjectionFilterRHS : public PlainRHS
+    {
+    public:
+      L2ProjectionFilterRHS
+      (FullMatrix<double> linear_operator,
+       FullMatrix<double> mass_matrix,
+       FullMatrix<double> joint_convection,
+       std::vector<FullMatrix<double>> nonlinear_operator,
+       Vector<double> mean_contribution,
+       unsigned int cutoff_n);
+      void apply(Vector<double> &dst, const Vector<double> &src) override;
+    private:
+      FullMatrix<double> joint_convection;
+      unsigned int cutoff_n;
     };
 
 

@@ -4,10 +4,13 @@ namespace POD
 {
   namespace NavierStokes
   {
-    NavierStokesRHS::NavierStokesRHS(FullMatrix<double> linear_operator,
-                                     FullMatrix<double> mass_matrix,
-                                     std::vector<FullMatrix<double>> nonlinear_operator,
-                                     Vector<double> mean_contribution) :
+    PlainRHS::PlainRHS() {}
+
+
+    PlainRHS::PlainRHS(FullMatrix<double> linear_operator,
+                       FullMatrix<double> mass_matrix,
+                       std::vector<FullMatrix<double>> nonlinear_operator,
+                       Vector<double> mean_contribution) :
       NonlinearOperatorBase(),
       linear_operator {linear_operator},
       nonlinear_operator {nonlinear_operator},
@@ -18,7 +21,7 @@ namespace POD
       factorized_mass_matrix.compute_lu_factorization();
     }
 
-    void NavierStokesRHS::apply(Vector<double> &dst, const Vector<double> &src)
+    void PlainRHS::apply(Vector<double> &dst, const Vector<double> &src)
     {
       const unsigned int n_dofs = src.size();
       linear_operator.vmult(dst, src);
@@ -35,7 +38,7 @@ namespace POD
     }
 
 
-    NavierStokesLerayRegularizationRHS::NavierStokesLerayRegularizationRHS
+    PODDifferentialFilterRHS::PODDifferentialFilterRHS
     (FullMatrix<double> linear_operator,
      FullMatrix<double> mass_matrix,
      FullMatrix<double> boundary_matrix,
@@ -43,8 +46,8 @@ namespace POD
      std::vector<FullMatrix<double>> nonlinear_operator,
      Vector<double> mean_contribution,
      double filter_radius) :
-      NavierStokesRHS(linear_operator, mass_matrix, nonlinear_operator,
-                      mean_contribution),
+      PlainRHS(linear_operator, mass_matrix, nonlinear_operator,
+               mean_contribution),
       mass_matrix {mass_matrix}
     {
       FullMatrix<double> filter_matrix(mass_matrix.m());
@@ -57,7 +60,7 @@ namespace POD
     }
 
 
-    void NavierStokesLerayRegularizationRHS::apply
+    void PODDifferentialFilterRHS::apply
     (Vector<double> &dst, const Vector<double> &src)
     {
       const unsigned int n_dofs = src.size();
@@ -77,6 +80,48 @@ namespace POD
 
       factorized_mass_matrix.apply_lu_factorization(dst, false);
     }
+
+
+    L2ProjectionFilterRHS::L2ProjectionFilterRHS
+    (FullMatrix<double> linear_operator,
+     FullMatrix<double> mass_matrix,
+     FullMatrix<double> joint_convection,
+     std::vector<FullMatrix<double>> nonlinear_operator,
+     Vector<double> mean_contribution,
+     unsigned int cutoff_n) :
+      PlainRHS(linear_operator, mass_matrix, nonlinear_operator, mean_contribution),
+      joint_convection {joint_convection},
+      cutoff_n {cutoff_n}
+    {
+      this->linear_operator.add(-1.0, joint_convection);
+    }
+
+
+    void L2ProjectionFilterRHS::apply
+    (Vector<double> &dst, const Vector<double> &src)
+    {
+      const unsigned int n_dofs = src.size();
+      linear_operator.vmult(dst, src);
+      dst += mean_contribution;
+
+      auto filtered_src = src;
+      for (unsigned int pod_vector_n = cutoff_n; pod_vector_n < n_dofs; ++pod_vector_n)
+        {
+          filtered_src[pod_vector_n] = 0.0;
+        }
+      joint_convection.vmult_add(dst, filtered_src);
+
+      Vector<double> temp(n_dofs);
+      for (unsigned int pod_vector_n = 0; pod_vector_n < n_dofs; ++pod_vector_n)
+        {
+          nonlinear_operator[pod_vector_n].vmult(temp, src);
+          dst(pod_vector_n) -= temp * filtered_src;
+        }
+
+      factorized_mass_matrix.apply_lu_factorization(dst, false);
+    }
+
+
 
 
     // template specializations
