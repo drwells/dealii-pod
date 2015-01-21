@@ -87,11 +87,15 @@ int main(int argc, char **argv)
     FullMatrix<double> pod_coefficients_matrix(n_snapshots, n_pod_vectors);
     BlockVector<double> fluctuation_norms(1, n_snapshots);
     auto &fluctuations = fluctuation_norms.block(0);
+    #pragma omp parallel for
     for (unsigned int snapshot_n = 0; snapshot_n < file_names.size(); ++snapshot_n)
       {
         auto &file_name = file_names[snapshot_n];
         BlockVector<double> snapshot;
-        H5::load_block_vector(file_name, snapshot);
+        #pragma omp critical
+       {
+          H5::load_block_vector(file_name, snapshot);
+        }
         snapshot -= mean_vector;
 
         Vector<double> temp(pod_vectors.at(0).block(0).size());
