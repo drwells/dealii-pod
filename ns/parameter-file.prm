@@ -1,0 +1,26 @@
+subsection DNS Information
+  set reynolds_n = 50.0
+  set outflow_label = 3
+  set fe_order = 2
+  set renumber = false
+end
+
+subsection Filtering Model Configuration
+  # use either 'Differential' or 'L2Projection'
+  set filter_model = L2Projection
+  # while both may be specified, only one will be used.
+  set filter_radius = 0.0
+  set cutoff_n = 11
+end
+
+subsection ROM Configuration
+  set initial_time = 30.0
+  set final_time = 500.0
+  set time_step = 1.0e-4
+end
+
+subsection Output Configuration
+  set patch_refinement = 2
+  set output_interval = 10
+  set save_plot_pictures = false
+end
