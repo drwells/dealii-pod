@@ -121,59 +121,5 @@ namespace POD
 
       factorized_mass_matrix.apply_lu_factorization(dst, false);
     }
-
-
-
-
-    // template specializations
-    template void create_advective_linearization<2>
-    (const DoFHandler<2>       &dof_handler,
-     const QGauss<2>           &quad,
-     const BlockVector<double> &solution,
-     SparseMatrix<double>      &advection);
-
-    template void create_advective_linearization<3>
-    (const DoFHandler<3>       &dof_handler,
-     const QGauss<3>           &quad,
-     const BlockVector<double> &solution,
-     SparseMatrix<double>      &advection);
-
-    template void create_gradient_linearization<2>
-    (const DoFHandler<2>       &dof_handler,
-     const QGauss<2>           &quad,
-     const BlockVector<double> &solution,
-     ArrayArray<2>             &gradient);
-
-    template void create_gradient_linearization<3>
-    (const DoFHandler<3>       &dof_handler,
-     const QGauss<3>           &quad,
-     const BlockVector<double> &solution,
-     ArrayArray<3>             &gradient);
-
-    template double trilinearity_term<2>(
-      const QGauss<2>         &quad,
-      const DoFHandler<2>     &dof_handler,
-      const BlockVector<double> &pod_vector_0,
-      const BlockVector<double> &pod_vector_1,
-      const BlockVector<double> &pod_vector_2);
-
-    template double trilinearity_term<3>(
-      const QGauss<3>         &quad,
-      const DoFHandler<3>     &dof_handler,
-      const BlockVector<double> &pod_vector_0,
-      const BlockVector<double> &pod_vector_1,
-      const BlockVector<double> &pod_vector_2);
-
-    template void create_boundary_matrix<2>
-    (const DoFHandler<2> &dof_handler,
-     const QGauss<1> &face_quad,
-     const unsigned int outflow_label,
-     SparseMatrix<double> &boundary_matrix);
-
-    template void create_boundary_matrix<3>
-    (const DoFHandler<3> &dof_handler,
-     const QGauss<2> &face_quad,
-     const unsigned int outflow_label,
-     SparseMatrix<double> &boundary_matrix);
   }
 }
