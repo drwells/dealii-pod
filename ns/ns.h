@@ -37,16 +37,16 @@ namespace POD
     {
     public:
       PlainRHS();
-      PlainRHS(FullMatrix<double> linear_operator,
-               FullMatrix<double> mass_matrix,
-               std::vector<FullMatrix<double>> nonlinear_operator,
-               Vector<double> mean_contribution);
+      PlainRHS(const FullMatrix<double> linear_operator,
+               const FullMatrix<double> mass_matrix,
+               const std::vector<FullMatrix<double>> nonlinear_operator,
+               const Vector<double> mean_contribution);
       void apply(Vector<double> &dst, const Vector<double> &src) override;
     protected:
-      FullMatrix<double> linear_operator;
+      const FullMatrix<double> linear_operator;
       LAPACKFullMatrix<double> factorized_mass_matrix;
-      std::vector<FullMatrix<double>> nonlinear_operator;
-      Vector<double> mean_contribution;
+      const std::vector<FullMatrix<double>> nonlinear_operator;
+      const Vector<double> mean_contribution;
     };
 
 
@@ -54,16 +54,16 @@ namespace POD
     {
     public:
       PODDifferentialFilterRHS
-      (FullMatrix<double> linear_operator,
-       FullMatrix<double> mass_matrix,
-       FullMatrix<double> boundary_matrix,
-       FullMatrix<double> laplace_matrix,
-       std::vector<FullMatrix<double>> nonlinear_operator,
-       Vector<double> mean_contribution,
-       double filter_radius);
+      (const FullMatrix<double> linear_operator,
+       const FullMatrix<double> mass_matrix,
+       const FullMatrix<double> boundary_matrix,
+       const FullMatrix<double> laplace_matrix,
+       const std::vector<FullMatrix<double>> nonlinear_operator,
+       const Vector<double> mean_contribution,
+       const double filter_radius);
       void apply(Vector<double> &dst, const Vector<double> &src) override;
     private:
-      FullMatrix<double> mass_matrix;
+      const FullMatrix<double> mass_matrix;
       LAPACKFullMatrix<double> factorized_filter_matrix;
     };
 
@@ -72,16 +72,17 @@ namespace POD
     {
     public:
       L2ProjectionFilterRHS
-      (FullMatrix<double> linear_operator,
-       FullMatrix<double> mass_matrix,
-       FullMatrix<double> joint_convection,
-       std::vector<FullMatrix<double>> nonlinear_operator,
-       Vector<double> mean_contribution,
-       unsigned int cutoff_n);
+      (const FullMatrix<double> linear_operator,
+       const FullMatrix<double> mass_matrix,
+       const FullMatrix<double> joint_convection,
+       const std::vector<FullMatrix<double>> nonlinear_operator,
+       const Vector<double> mean_contribution,
+       const unsigned int cutoff_n);
       void apply(Vector<double> &dst, const Vector<double> &src) override;
     private:
-      FullMatrix<double> joint_convection;
-      unsigned int cutoff_n;
+      const FullMatrix<double> joint_convection;
+      FullMatrix<double> linear_operator_without_convection;
+      const unsigned int cutoff_n;
     };
 
 

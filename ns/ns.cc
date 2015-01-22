@@ -7,10 +7,10 @@ namespace POD
     PlainRHS::PlainRHS() {}
 
 
-    PlainRHS::PlainRHS(FullMatrix<double> linear_operator,
-                       FullMatrix<double> mass_matrix,
-                       std::vector<FullMatrix<double>> nonlinear_operator,
-                       Vector<double> mean_contribution) :
+    PlainRHS::PlainRHS(const FullMatrix<double> linear_operator,
+                       const FullMatrix<double> mass_matrix,
+                       const std::vector<FullMatrix<double>> nonlinear_operator,
+                       const Vector<double> mean_contribution) :
       NonlinearOperatorBase(),
       linear_operator {linear_operator},
       nonlinear_operator {nonlinear_operator},
@@ -39,13 +39,13 @@ namespace POD
 
 
     PODDifferentialFilterRHS::PODDifferentialFilterRHS
-    (FullMatrix<double> linear_operator,
-     FullMatrix<double> mass_matrix,
-     FullMatrix<double> boundary_matrix,
-     FullMatrix<double> laplace_matrix,
-     std::vector<FullMatrix<double>> nonlinear_operator,
-     Vector<double> mean_contribution,
-     double filter_radius) :
+    (const FullMatrix<double> linear_operator,
+     const FullMatrix<double> mass_matrix,
+     const FullMatrix<double> boundary_matrix,
+     const FullMatrix<double> laplace_matrix,
+     const std::vector<FullMatrix<double>> nonlinear_operator,
+     const Vector<double> mean_contribution,
+     const double filter_radius) :
       PlainRHS(linear_operator, mass_matrix, nonlinear_operator,
                mean_contribution),
       mass_matrix {mass_matrix}
@@ -83,17 +83,18 @@ namespace POD
 
 
     L2ProjectionFilterRHS::L2ProjectionFilterRHS
-    (FullMatrix<double> linear_operator,
-     FullMatrix<double> mass_matrix,
-     FullMatrix<double> joint_convection,
-     std::vector<FullMatrix<double>> nonlinear_operator,
-     Vector<double> mean_contribution,
-     unsigned int cutoff_n) :
+    (const FullMatrix<double> linear_operator,
+     const FullMatrix<double> mass_matrix,
+     const FullMatrix<double> joint_convection,
+     const std::vector<FullMatrix<double>> nonlinear_operator,
+     const Vector<double> mean_contribution,
+     const unsigned int cutoff_n) :
       PlainRHS(linear_operator, mass_matrix, nonlinear_operator, mean_contribution),
       joint_convection {joint_convection},
+      linear_operator_without_convection {linear_operator},
       cutoff_n {cutoff_n}
     {
-      this->linear_operator.add(-1.0, joint_convection);
+      this->linear_operator_without_convection.add(-1.0, joint_convection);
     }
 
 
@@ -101,7 +102,7 @@ namespace POD
     (Vector<double> &dst, const Vector<double> &src)
     {
       const unsigned int n_dofs = src.size();
-      linear_operator.vmult(dst, src);
+      linear_operator_without_convection.vmult(dst, src);
       dst += mean_contribution;
 
       auto filtered_src = src;
