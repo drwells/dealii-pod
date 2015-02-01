@@ -60,9 +60,7 @@ namespace POD
 
       Chebyshev<dim> basis_function(orders);
       std::vector<Point<dim>> support_points(dof_handler.n_dofs());
-      DoFTools::map_dofs_to_support_points(mapping,
-                                           dof_handler,
-                                           support_points);
+      DoFTools::map_dofs_to_support_points(mapping, dof_handler, support_points);
       unsigned int i = 0;
       for (auto &point : support_points)
         {
@@ -79,35 +77,32 @@ template<int dim>
 void test_boundary_matrix(const DoFHandler<dim> &dof_handler,
                           const SparsityPattern &sparsity_pattern,
                           const unsigned int outflow_label,
-                          const std::vector<BlockVector<double>> &chebyshev_vectors)
+                          const std::vector<BlockVector<double>> &pod_vectors)
 {
   QGauss<dim - 1> face_quad(5);
   SparseMatrix<double> boundary_matrix(sparsity_pattern);
   create_boundary_matrix(dof_handler, face_quad, outflow_label, boundary_matrix);
 
-  Vector<double> temp(chebyshev_vectors[0].block(0).size());
-  boundary_matrix.vmult(temp, chebyshev_vectors[1].block(0));
+  Vector<double> temp(pod_vectors[0].block(0).size());
+  boundary_matrix.vmult(temp, pod_vectors[1].block(0));
   std::cout << "boundary integral value: "
-            << chebyshev_vectors.at(0).block(0) * temp
+            << pod_vectors.at(0).block(0) * temp
             << std::endl;
 }
 
 
 template<int dim>
 void test_nonlinearity(const DoFHandler<dim> &dof_handler,
-                       const std::vector<BlockVector<double>> &chebyshev_vectors)
+                       const std::vector<BlockVector<double>> &pod_vectors)
 {
   QGauss<dim> quad (5);
-  double result = trilinearity_term(quad,
-                                    dof_handler,
-                                    chebyshev_vectors[0],
-                                    chebyshev_vectors[1],
-                                    chebyshev_vectors[2]);
+  double result = trilinearity_term
+  (quad, dof_handler, pod_vectors.at(0), pod_vectors.at(1), pod_vectors.at(2));
   std::cout << "nonlinearity entry is " << result << std::endl;
   std::cout << "expected value is     " << -1.488498996 << std::endl;
 
-  result = trilinearity_term(quad, dof_handler, chebyshev_vectors[0],
-                             chebyshev_vectors[0], chebyshev_vectors[0]);
+  result = trilinearity_term(quad, dof_handler, pod_vectors.at(0),
+                             pod_vectors.at(0), pod_vectors.at(0));
   std::cout << "nonlinearity entry is " << result << std::endl;
   std::cout << "expected value is     " << -0.13799533 << std::endl;
 }
@@ -229,7 +224,7 @@ template<int dim>
 void test_gradient_linearization
 (DoFHandler<dim> &dof_handler,
  SparsityPattern &sparsity_pattern,
- const std::vector<BlockVector<double>> &chebyshev_vectors)
+ const std::vector<BlockVector<double>> &pod_vectors)
 {
   QGauss<dim> quad (5);
   ArrayArray<dim> gradient_matrices;
@@ -240,13 +235,13 @@ void test_gradient_linearization
           matrix.reinit(sparsity_pattern);
         }
     }
-  create_gradient_linearization(dof_handler, quad, chebyshev_vectors.at(2),
+  create_gradient_linearization(dof_handler, quad, pod_vectors.at(2),
                                 gradient_matrices);
-  BlockVector<double> temp(chebyshev_vectors.at(0).n_blocks(),
-                           chebyshev_vectors.at(0).block(0).size());
+  BlockVector<double> temp(pod_vectors.at(0).n_blocks(),
+                           pod_vectors.at(0).block(0).size());
 
-  auto &lhs_vector = chebyshev_vectors.at(0);
-  auto &rhs_vector = chebyshev_vectors.at(1);
+  auto &lhs_vector = pod_vectors.at(0);
+  auto &rhs_vector = pod_vectors.at(1);
   for (unsigned int row_n = 0; row_n < gradient_matrices.size(); ++row_n)
     {
       for (unsigned int column_n = 0; column_n < gradient_matrices[0].size();
@@ -297,21 +292,21 @@ int main(int argc, char **argv)
   // set up the fake POD basis.
   Tensor<1, dim, int> orders;
   unsigned int n_vectors = 5;
-  std::vector<BlockVector<double>> chebyshev_vectors;
+  std::vector<BlockVector<double>> pod_vectors;
   for (unsigned int i = 0; i < n_vectors; ++i)
     {
       for (unsigned int j = 0; j < dim; ++j)
         {
           orders[j] = 3*j + 1 + 2*i;
         }
-      BlockVector<double> chebyshev_vector(dim);
-      get_chebyshev_vector(orders, dof_handler, fe_values, chebyshev_vector.block(0));
+      BlockVector<double> pod_vector(dim);
+      get_pod_vector(orders, dof_handler, fe_values, pod_vector.block(0));
       for (unsigned int j = 1; j < dim; ++j)
         {
-          chebyshev_vector.block(j) = chebyshev_vector.block(0);
+          pod_vector.block(j) = pod_vector.block(0);
         }
-      chebyshev_vector.collect_sizes();
-      chebyshev_vectors.push_back(std::move(chebyshev_vector));
+      pod_vector.collect_sizes();
+      pod_vectors.push_back(std::move(pod_vector));
       std::cout << "function order = " << orders << std::endl;
     }
 
@@ -322,13 +317,13 @@ int main(int argc, char **argv)
     sparsity_pattern.copy_from(c_sparsity);
   }
 
-  test_nonlinearity(dof_handler, chebyshev_vectors);
-  test_boundary_matrix(dof_handler, sparsity_pattern, outflow_label, chebyshev_vectors);
+  test_nonlinearity(dof_handler, pod_vectors);
+  test_boundary_matrix(dof_handler, sparsity_pattern, outflow_label, pod_vectors);
 
-  test_advective_linearization(dof_handler, sparsity_pattern, chebyshev_vectors);
-  test_gradient_linearization(dof_handler, sparsity_pattern, chebyshev_vectors);
+  test_advective_linearization(dof_handler, sparsity_pattern, pod_vectors);
+  test_gradient_linearization(dof_handler, sparsity_pattern, pod_vectors);
 
-  test_reduced_advective_linearization(dof_handler, sparsity_pattern, chebyshev_vectors);
-  test_reduced_gradient_linearization(dof_handler, sparsity_pattern, chebyshev_vectors);
-  test_reduced_nonlinearity(dof_handler, sparsity_pattern, chebyshev_vectors);
+  test_reduced_advective_linearization(dof_handler, sparsity_pattern, pod_vectors);
+  test_reduced_gradient_linearization(dof_handler, sparsity_pattern, pod_vectors);
+  test_reduced_nonlinearity(dof_handler, sparsity_pattern, pod_vectors);
 }
