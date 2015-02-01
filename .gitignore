@@ -8,3 +8,7 @@ CMakeFiles/*
 Makefile
 *.o
 *h5
+*/*.kdev4
+*/*/*kdev4
+*/CMakeFiles/*
+*/*/CMakeFiles/*
