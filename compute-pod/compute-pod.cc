@@ -270,7 +270,7 @@ int main(int argc, char **argv)
   Utilities::MPI::MPI_InitFinalize mpi_initialization
   (argc, argv, numbers::invalid_unsigned_int);
   {
-    PODVectors<2> pod_vectors(false);
+    PODVectors<3> pod_vectors(false);
     pod_vectors.run();
   }
 }
