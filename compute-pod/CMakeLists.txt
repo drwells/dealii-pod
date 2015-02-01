@@ -1,7 +1,3 @@
-##
-#  CMake script for the step-26 tutorial program:
-##
-
 # Set the name of the project and target:
 SET(TARGET "compute-pod")
 
