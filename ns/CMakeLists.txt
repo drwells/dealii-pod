@@ -32,7 +32,7 @@ SET(TARGET_SRC
   )
 
 enable_language(CXX)
-SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -g -ffast-math -Wall")
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -g -ffast-math -Wextra -pedantic -Wall -Wno-unused-variable -ftemplate-backtrace-limit=1")
 
 find_package(OpenMP)
 if (OPENMP_FOUND)
