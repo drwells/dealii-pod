@@ -12,3 +12,7 @@ Makefile
 */*/*kdev4
 */CMakeFiles/*
 */*/CMakeFiles/*
+# binary files
+ns/rom
+project/project
+compute-pod/compute-pod
