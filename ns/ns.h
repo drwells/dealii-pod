@@ -86,6 +86,20 @@ namespace POD
     };
 
 
+    class PostFilter : public ODE::OperatorBase
+    {
+    public:
+      PostFilter
+      (const FullMatrix<double> &mass_matrix,
+       const FullMatrix<double> &laplace_matrix,
+       const double filter_radius);
+      virtual void apply(Vector<double> &dst, const Vector<double> &src);
+    private:
+      const FullMatrix<double> mass_matrix;
+      LAPACKFullMatrix<double> factorized_post_filter_matrix;
+    };
+
+
     // The `static_cast` is dumb, but necessary to make the compiler
     // happy. There is surely a better way to do this with block sparse
     // matrices.

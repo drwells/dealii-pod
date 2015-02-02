@@ -21,11 +21,12 @@ POD::NavierStokes::Parameters::Parameters()
   parameter_handler.enter_subsection("Filtering Model Configuration");
   {
     parameter_handler.declare_entry
-    ("filter_model", "Differential", Patterns::Selection("L2Projection|Differential"),
+    ("filter_model", "Differential",
+     Patterns::Selection("L2Projection|Differential|PostFilter"),
      " Filtering strategy for the POD-ROM.");
     parameter_handler.declare_entry
     ("filter_radius", "0.0", Patterns::Double(0.0), " Filter radius for the "
-     "differential filter.");
+     "differential or post filter.");
     parameter_handler.declare_entry
     ("cutoff_n", "5", Patterns::Integer(0), " Cutoff parameter for the L2 "
      "projection filter.");
@@ -83,6 +84,10 @@ void POD::NavierStokes::Parameters::read_data(std::string file_name)
     else if (parameter_handler.get("filter_model") == std::string("L2Projection"))
       {
         filter_model = POD::FilterModel::L2Projection;
+      }
+    else if (parameter_handler.get("filter_model") == std::string("PostFilter"))
+      {
+        filter_model = POD::FilterModel::PostFilter;
       }
     else
       {

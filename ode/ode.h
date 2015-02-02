@@ -40,5 +40,18 @@ namespace ODE
     Vector<double> step_3;
     Vector<double> step_4;
   };
+
+
+  class RungeKutta4PostFilter : public RungeKutta4
+  {
+  public:
+    RungeKutta4PostFilter
+    (std::unique_ptr<OperatorBase> rhs_function,
+     std::unique_ptr<OperatorBase> filter_function);
+    void step
+    (double time_step, const Vector<double> &src, Vector<double> &dst) override;
+  protected:
+    std::unique_ptr<OperatorBase> filter_function;
+  };
 }
 #endif

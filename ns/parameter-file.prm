@@ -6,8 +6,8 @@ subsection DNS Information
 end
 
 subsection Filtering Model Configuration
-  # use either 'Differential' or 'L2Projection'
-  set filter_model = L2Projection
+  # use 'Differential', 'L2Projection', or 'PostFilter'
+  set filter_model = PostFilter
   # while both may be specified, only one will be used.
   set filter_radius = 0.0
   set cutoff_n = 11

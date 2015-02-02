@@ -42,4 +42,21 @@ namespace ODE
     dst.add(time_step/3.0, step_3);
     dst.add(time_step/6.0, step_4);
   }
+
+
+  RungeKutta4PostFilter::RungeKutta4PostFilter
+  (std::unique_ptr<OperatorBase> rhs_function,
+   std::unique_ptr<OperatorBase> filter_function)
+    : RungeKutta4(std::move(rhs_function)),
+      filter_function {std::move(filter_function)}
+  {}
+
+
+  void RungeKutta4PostFilter::step
+  (double time_step, const Vector<double> &src, Vector<double> &dst)
+  {
+    Vector<double> temp(src.size());
+    RungeKutta4::step(time_step, src, temp);
+    filter_function->apply(dst, temp);
+  }
 }
