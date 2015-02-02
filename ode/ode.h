@@ -18,9 +18,9 @@ namespace ODE
   class RungeKuttaBase
   {
   public:
-    RungeKuttaBase();
-    virtual void step(double time_step, const Vector<double> &src,
-                      Vector<double> &dst);
+    RungeKuttaBase(std::unique_ptr<OperatorBase> rhs_function);
+    virtual void step
+    (double time_step, const Vector<double> &src, Vector<double> &dst) = 0;
   protected:
     std::unique_ptr<OperatorBase> rhs_function;
     unsigned int n_dofs;

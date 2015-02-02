@@ -1,30 +1,19 @@
 #include "ode.h"
 namespace ODE
 {
-  // These stubs are necessary because I pass a not-quite abstract type around.
-  // I should probably rewrite this to use templates because I want incomplete
-  // types.
+  RungeKuttaBase::RungeKuttaBase(std::unique_ptr<OperatorBase> rhs_function)
+    : rhs_function {std::move(rhs_function)},
+      n_dofs {numbers::invalid_unsigned_int}
   {}
 
 
-  RungeKuttaBase::RungeKuttaBase()
+  RungeKutta4::RungeKutta4(std::unique_ptr<OperatorBase> rhs_function)
+    : RungeKuttaBase(std::move(rhs_function))
   {}
 
-  void RungeKuttaBase::step(double time_step,
-                            const Vector<double> &src,
-                            Vector<double> &dst)
-  {
-    std::cerr << "this method is a stub and does nothing!" << std::endl;
-  }
 
-  RungeKutta4::RungeKutta4(std::unique_ptr<NonlinearOperatorBase> rhs_function)
-    : RungeKuttaBase()
-  {
-    this->rhs_function = std::move(rhs_function);
-    n_dofs = numbers::invalid_unsigned_int;
-  }
-
-  void RungeKutta4::step(double time_step, const Vector<double> &src, Vector<double> &dst)
+  void RungeKutta4::step
+  (double time_step, const Vector<double> &src, Vector<double> &dst)
   {
     if (n_dofs == numbers::invalid_unsigned_int)
       {
