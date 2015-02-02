@@ -138,19 +138,19 @@ namespace NavierStokes
         and parameters.filter_radius != 0.0)
       {
         std::shared_ptr<SparseMatrix<double>> full_mass_matrix
-          {new SparseMatrix<double>};
+        {new SparseMatrix<double>};
         full_mass_matrix->reinit(sparsity_pattern);
         SparseMatrix<double> full_laplace_matrix(sparsity_pattern);
         SparseMatrix<double> full_boundary_matrix(sparsity_pattern);
         QGauss<dim - 1> face_quad(fe->degree + 3);
         MatrixCreator::create_mass_matrix(*dof_handler, *quad, *full_mass_matrix);
         MatrixCreator::create_laplace_matrix
-          (*dof_handler, *quad, full_laplace_matrix);
+        (*dof_handler, *quad, full_laplace_matrix);
         POD::NavierStokes::create_boundary_matrix
-          (*dof_handler, face_quad, parameters.outflow_label, full_boundary_matrix);
+        (*dof_handler, face_quad, parameters.outflow_label, full_boundary_matrix);
 
         Leray::LerayFilter filter
-          (parameters.filter_radius, full_mass_matrix, full_boundary_matrix, full_laplace_matrix);
+        (parameters.filter_radius, full_mass_matrix, full_boundary_matrix, full_laplace_matrix);
         filter.apply(*filtered_mean_vector, *mean_vector);
         filtered_pod_vectors->resize(n_pod_dofs);
         for (unsigned int pod_vector_n = 0; pod_vector_n < n_pod_dofs; ++pod_vector_n)
