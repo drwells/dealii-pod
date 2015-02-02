@@ -11,7 +11,6 @@ namespace POD
                        const FullMatrix<double> mass_matrix,
                        const std::vector<FullMatrix<double>> nonlinear_operator,
                        const Vector<double> mean_contribution) :
-      NonlinearOperatorBase(),
       linear_operator {linear_operator},
       nonlinear_operator {nonlinear_operator},
       mean_contribution {mean_contribution}

@@ -4,14 +4,8 @@ namespace ODE
   // These stubs are necessary because I pass a not-quite abstract type around.
   // I should probably rewrite this to use templates because I want incomplete
   // types.
-  NonlinearOperatorBase::NonlinearOperatorBase()
   {}
 
-  void NonlinearOperatorBase::apply(Vector<double> &dst,
-                                    const Vector<double> &src)
-  {
-    std::cerr << "this method is a stub and does nothing!" << std::endl;
-  }
 
   RungeKuttaBase::RungeKuttaBase()
   {}

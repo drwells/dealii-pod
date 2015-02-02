@@ -8,12 +8,12 @@
 using namespace dealii;
 namespace ODE
 {
-  class NonlinearOperatorBase
+  class OperatorBase
   {
   public:
-    NonlinearOperatorBase();
-    virtual void apply(Vector<double> &dst, const Vector<double> &src);
+    virtual void apply(Vector<double> &dst, const Vector<double> &src) = 0;
   };
+
 
   class RungeKuttaBase
   {
@@ -22,9 +22,7 @@ namespace ODE
     virtual void step(double time_step, const Vector<double> &src,
                       Vector<double> &dst);
   protected:
-    // The pointer is needed to get around the "object slicing" problem. See
-    // the wikipedia entry.
-    std::unique_ptr<NonlinearOperatorBase> rhs_function;
+    std::unique_ptr<OperatorBase> rhs_function;
     unsigned int n_dofs;
   };
 
@@ -32,7 +30,7 @@ namespace ODE
   class RungeKutta4 : public RungeKuttaBase
   {
   public:
-    RungeKutta4(std::unique_ptr<NonlinearOperatorBase> rhs_function);
+    RungeKutta4(std::unique_ptr<OperatorBase> rhs_function);
     void step(double time_step, const Vector<double> &src,
               Vector<double> &dst) override;
   private:

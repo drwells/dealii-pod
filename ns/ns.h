@@ -33,7 +33,7 @@ namespace POD
 
   namespace NavierStokes
   {
-    class PlainRHS : public ODE::NonlinearOperatorBase
+    class PlainRHS : public ODE::OperatorBase
     {
     public:
       PlainRHS();
