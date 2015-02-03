@@ -320,7 +320,7 @@ namespace NavierStokes
       }
     else
       {
-        ExcNotImplemented();
+        StandardExceptions::ExcNotImplemented();
       }
     outname << outname_tail.str();
 
