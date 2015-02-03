@@ -1,6 +1,4 @@
 /* ---------------------------------------------------------------------
- * $Id: rom.cc $
- *
  * Copyright (C) 2014 David Wells
  *
  * This file is NOT part of the deal.II library.
