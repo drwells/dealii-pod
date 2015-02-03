@@ -106,6 +106,8 @@ namespace NavierStokes
   dof_handler {new DoFHandler<dim>},
   pod_vectors {new std::vector<BlockVector<double>>},
   mean_vector {new BlockVector<double>},
+  filtered_pod_vectors {new std::vector<BlockVector<double>>},
+  filtered_mean_vector {new BlockVector<double>},
   timestep_number {0}
   {
     parameters.read_data(std::string("parameter-file.prm"));
