@@ -14,6 +14,13 @@ namespace ODE
     virtual void apply(Vector<double> &dst, const Vector<double> &src) = 0;
   };
 
+  // Empty object, so that we may instantiate things without null pointers. It
+  // is not quite a null object since EmptyOperator::apply throws an exception.
+  class EmptyOperator : public OperatorBase
+  {
+    virtual void apply(Vector<double> &dst, const Vector<double> &src) override;
+  };
+
 
   class RungeKuttaBase
   {
@@ -30,6 +37,7 @@ namespace ODE
   class RungeKutta4 : public RungeKuttaBase
   {
   public:
+    RungeKutta4();
     RungeKutta4(std::unique_ptr<OperatorBase> rhs_function);
     void step(double time_step, const Vector<double> &src,
               Vector<double> &dst) override;

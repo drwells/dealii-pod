@@ -7,6 +7,17 @@ namespace ODE
   {}
 
 
+  void EmptyOperator::apply(Vector<double> &dst, const Vector<double> &src)
+  {
+    StandardExceptions::ExcNotInitialized();
+  }
+
+
+  RungeKutta4::RungeKutta4()
+    : RungeKuttaBase(std::unique_ptr<OperatorBase> (new EmptyOperator()))
+  {}
+
+
   RungeKutta4::RungeKutta4(std::unique_ptr<OperatorBase> rhs_function)
     : RungeKuttaBase(std::move(rhs_function))
   {}
