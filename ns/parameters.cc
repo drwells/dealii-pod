@@ -30,6 +30,9 @@ POD::NavierStokes::Parameters::Parameters()
     parameter_handler.declare_entry
     ("cutoff_n", "5", Patterns::Integer(0), " Cutoff parameter for the L2 "
      "projection filter.");
+    parameter_handler.declare_entry
+    ("filter_mean", "false", Patterns::Bool(), "Whether or not to filter the "
+     "centered trajectory.");
   }
   parameter_handler.leave_subsection();
 
@@ -91,11 +94,12 @@ void POD::NavierStokes::Parameters::read_data(std::string file_name)
       }
     else
       {
-        ExcNotImplemented();
+        StandardExceptions::ExcNotImplemented();
       }
 
     filter_radius = parameter_handler.get_double("filter_radius");
     cutoff_n = parameter_handler.get_integer("cutoff_n");
+    filter_mean = parameter_handler.get_bool("filter_mean");
   }
   parameter_handler.leave_subsection();
 

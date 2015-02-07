@@ -153,7 +153,16 @@ namespace NavierStokes
         Leray::LerayFilter filter
         (parameters.filter_radius, full_mass_matrix, full_boundary_matrix,
          full_laplace_matrix);
-        filter.apply(*filtered_mean_vector, *mean_vector);
+
+        if (parameters.filter_mean)
+          {
+            filter.apply(*filtered_mean_vector, *mean_vector);
+          }
+         else
+           {
+             filtered_mean_vector = mean_vector;
+           }
+
         filtered_pod_vectors->resize(n_pod_dofs);
         for (unsigned int pod_vector_n = 0; pod_vector_n < n_pod_dofs; ++pod_vector_n)
           {
@@ -300,6 +309,10 @@ namespace NavierStokes
       }
     else if (parameters.filter_model == POD::FilterModel::L2Projection)
       {
+        if (parameters.filter_mean)
+          {
+            StandardExceptions::ExcNotImplemented();
+          }
         outname << "pod-l2-projection-cutoff-" << parameters.cutoff_n;
         std::unique_ptr<POD::NavierStokes::L2ProjectionFilterRHS> rhs_function
         (new POD::NavierStokes::L2ProjectionFilterRHS

@@ -11,6 +11,8 @@ subsection Filtering Model Configuration
   # while both may be specified, only one will be used.
   set filter_radius = 0.0
   set cutoff_n = 11
+  # this value is only used with the Leray models.
+  set filter_mean = true
 end
 
 subsection ROM Configuration

@@ -21,6 +21,7 @@ namespace POD
       POD::FilterModel filter_model;
       double filter_radius;
       unsigned int cutoff_n;
+      bool filter_mean;
 
       double initial_time;
       double final_time;
