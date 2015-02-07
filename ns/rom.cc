@@ -313,7 +313,7 @@ namespace NavierStokes
         outname << "pod-postfilter-radius-" << parameters.filter_radius;
         std::unique_ptr<POD::NavierStokes::PostFilter> filter_function
         (new POD::NavierStokes::PostFilter
-         (mass_matrix, laplace_matrix, parameters.filter_radius));
+         (mass_matrix, laplace_matrix, boundary_matrix, parameters.filter_radius));
         rk_method = std::move
                     (std::unique_ptr<ODE::RungeKutta4PostFilter>
                      (new ODE::RungeKutta4PostFilter

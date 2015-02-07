@@ -125,12 +125,14 @@ namespace POD
     PostFilter::PostFilter
     (const FullMatrix<double> &mass_matrix,
      const FullMatrix<double> &laplace_matrix,
+     const FullMatrix<double> &boundary_matrix,
      const double filter_radius) :
       mass_matrix {mass_matrix}
     {
       FullMatrix<double> filter_matrix(mass_matrix.m());
       filter_matrix.add(1.0, mass_matrix);
       filter_matrix.add(filter_radius*filter_radius, laplace_matrix);
+      filter_matrix.add(-1.0*filter_radius*filter_radius, boundary_matrix);
       factorized_post_filter_matrix.reinit(mass_matrix.m());
       factorized_post_filter_matrix.copy_from(filter_matrix);
       factorized_post_filter_matrix.compute_lu_factorization();

@@ -92,6 +92,7 @@ namespace POD
       PostFilter
       (const FullMatrix<double> &mass_matrix,
        const FullMatrix<double> &laplace_matrix,
+       const FullMatrix<double> &boundary_matrix,
        const double filter_radius);
       virtual void apply(Vector<double> &dst, const Vector<double> &src);
     private:
