@@ -18,6 +18,12 @@ namespace Leray
     x_system_matrix.add(filter_radius*filter_radius, laplace_matrix);
     x_system_matrix.add(-1.0*filter_radius*filter_radius, boundary_matrix);
     other_system_matrix.add(filter_radius*filter_radius, laplace_matrix);
+
+    const double diagonal_strengthening = 10000;
+    x_preconditioner.initialize
+      (x_system_matrix, SparseILU<double>::AdditionalData(diagonal_strengthening));
+    other_preconditioner.initialize
+      (other_system_matrix, PreconditionChebyshev<>::AdditionalData(2));
   }
 
   void LerayFilter::apply
@@ -29,11 +35,11 @@ namespace Leray
 
     Vector<double> rhs(src.block(0).size());
     mass_matrix->vmult(rhs, src.block(0));
-    solver.solve(x_system_matrix, dst.block(0), rhs, PreconditionIdentity());
+    solver.solve(x_system_matrix, dst.block(0), rhs, x_preconditioner);
     for (unsigned int dim_n = 1; dim_n < src.n_blocks(); ++dim_n)
       {
         mass_matrix->vmult(rhs, src.block(dim_n));
-        solver.solve(other_system_matrix, dst.block(dim_n), rhs, PreconditionIdentity());
+        solver.solve(other_system_matrix, dst.block(dim_n), rhs, other_preconditioner);
       }
   }
 }
