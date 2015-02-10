@@ -291,6 +291,10 @@ namespace NavierStokes
     std::ostringstream outname;
     outname.precision(8);
     std::ostringstream outname_tail;
+    if (not parameters.filter_mean)
+      {
+        outname_tail << "-unfiltered-mean";
+      }
     outname_tail << "-r-" << n_pod_dofs
                  << "-Re-" << parameters.reynolds_n
                  << ".h5";
