@@ -43,6 +43,7 @@ namespace POD
   using namespace dealii;
 
   constexpr unsigned int deg = 2;
+  constexpr bool center_trajectory = true;
 
   template<int dim>
   class PODVectors
@@ -128,7 +129,8 @@ namespace POD
       }
     globfree(&glob_result);
 
-    method_of_snapshots(mass_matrix, snapshot_file_names, n_pod_vectors, pod_result);
+    method_of_snapshots(mass_matrix, snapshot_file_names, n_pod_vectors,
+                        center_trajectory, pod_result);
     // check orthogonality.
     dealii::BlockVector<double> temp(pod_result.vectors.at(0).n_blocks(),
                                      pod_result.vectors.at(0).block(0).size());

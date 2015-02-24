@@ -28,9 +28,10 @@ namespace POD
   }
 
 
-  void method_of_snapshots(SparseMatrix<double> &mass_matrix,
-                           std::vector<std::string> &snapshot_file_names,
+  void method_of_snapshots(const SparseMatrix<double> &mass_matrix,
+                           const std::vector<std::string> &snapshot_file_names,
                            const unsigned int n_pod_vectors,
+                           const bool center_trajectory,
                            BlockPODBasis &pod_basis)
   {
     BlockVector<double> block_vector;
@@ -59,13 +60,17 @@ namespace POD
         snapshots.push_back(std::move(block_vector));
       }
 
-    // center the trajectory.
-    for (auto &snapshot : snapshots)
+    if (center_trajectory)
       {
-        snapshot.add(-1.0, pod_basis.mean_vector);
+        for (auto &snapshot : snapshots)
+          {
+            snapshot.add(-1.0, pod_basis.mean_vector);
+          }
       }
-
-    std::cout << "centered trajectory." << std::endl;
+    else
+      {
+        pod_basis.mean_vector = 0.0;
+      }
 
     LAPACKFullMatrix<double> correlation_matrix(n_snapshots);
     LAPACKFullMatrix<double> identity(n_snapshots);

@@ -234,9 +234,10 @@ namespace POD
                       BlockVector<double> &mean_vector,
                       std::vector<BlockVector<double>> &pod_vectors);
 
-  void method_of_snapshots(dealii::SparseMatrix<double> &mass_matrix,
-                           std::vector<std::string> &snapshot_file_names,
+  void method_of_snapshots(const dealii::SparseMatrix<double> &mass_matrix,
+                           const std::vector<std::string> &snapshot_file_names,
                            const unsigned int n_pod_vectors,
+                           const bool center_trajectory,
                            BlockPODBasis &pod_basis);
 
   void create_reduced_matrix(const std::vector<BlockVector<double>> &pod_vectors,
