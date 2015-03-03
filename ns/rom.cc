@@ -318,7 +318,7 @@ namespace NavierStokes
       {
         outname << "pod-leray-radius-" << parameters.filter_radius;
         rk_method = std::unique_ptr<ODE::RungeKutta4>
-          (new ODE::RungeKutta4(std::move(plain_rhs_function)));
+                    (new ODE::RungeKutta4(std::move(plain_rhs_function)));
       }
     else if (parameters.filter_model == POD::FilterModel::L2Projection
              or parameters.filter_model == POD::FilterModel::LerayHybrid)
@@ -342,7 +342,7 @@ namespace NavierStokes
          (linear_operator, mass_matrix, joint_convection, nonlinear_operator,
           mean_contribution_vector, parameters.cutoff_n));
         rk_method = std::unique_ptr<ODE::RungeKutta4>
-          (new ODE::RungeKutta4(std::move(rhs_function)));
+                    (new ODE::RungeKutta4(std::move(rhs_function)));
       }
     else if (parameters.filter_model == POD::FilterModel::PostFilter)
       {
@@ -351,8 +351,8 @@ namespace NavierStokes
         (new POD::NavierStokes::PostFilter
          (mass_matrix, laplace_matrix, boundary_matrix, parameters.filter_radius));
         rk_method = std::unique_ptr<ODE::RungeKutta4PostFilter>
-          (new ODE::RungeKutta4PostFilter
-           (std::move(plain_rhs_function), std::move(filter_function)));
+                    (new ODE::RungeKutta4PostFilter
+                     (std::move(plain_rhs_function), std::move(filter_function)));
       }
     else
       {
