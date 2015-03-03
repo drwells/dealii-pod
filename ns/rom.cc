@@ -346,6 +346,10 @@ namespace NavierStokes
       }
     else if (parameters.filter_model == POD::FilterModel::PostFilter)
       {
+        if (parameters.filter_mean)
+          {
+            StandardExceptions::ExcNotImplemented();
+          }
         outname << "pod-postfilter-radius-" << parameters.filter_radius;
         std::unique_ptr<POD::NavierStokes::PostFilter> filter_function
         (new POD::NavierStokes::PostFilter
