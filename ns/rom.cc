@@ -135,7 +135,8 @@ namespace NavierStokes
     // This is an abuse of notation to save duplication: if the POD vectors are
     // not filtered, then simply assign the filtered pod vectors pointer to
     // point to the unfiltered ones.
-    if (parameters.filter_model == POD::FilterModel::Differential
+    if ((parameters.filter_model == POD::FilterModel::Differential
+         or parameters.filter_model == POD::FilterModel::LerayHybrid)
         and parameters.filter_radius != 0.0)
       {
         std::shared_ptr<SparseMatrix<double>> full_mass_matrix
@@ -154,20 +155,29 @@ namespace NavierStokes
         (parameters.filter_radius, full_mass_matrix, full_boundary_matrix,
          full_laplace_matrix);
 
-        if (parameters.filter_mean)
+        if (parameters.filter_mean
+            or parameters.filter_model == POD::FilterModel::LerayHybrid)
           {
             filter.apply(*filtered_mean_vector, *mean_vector);
           }
-         else
-           {
-             filtered_mean_vector = mean_vector;
-           }
-
-        filtered_pod_vectors->resize(n_pod_dofs);
-        for (unsigned int pod_vector_n = 0; pod_vector_n < n_pod_dofs; ++pod_vector_n)
+        else
           {
-            filter.apply(filtered_pod_vectors->at(pod_vector_n),
-                         pod_vectors->at(pod_vector_n));
+            filtered_mean_vector = mean_vector;
+          }
+
+        if (parameters.filter_model == POD::FilterModel::Differential)
+          {
+            filtered_pod_vectors->resize(n_pod_dofs);
+            for (unsigned int pod_vector_n = 0; pod_vector_n < n_pod_dofs;
+                 ++pod_vector_n)
+              {
+                filter.apply(filtered_pod_vectors->at(pod_vector_n),
+                             pod_vectors->at(pod_vector_n));
+              }
+          }
+        else
+          {
+            filtered_pod_vectors = pod_vectors;
           }
         std::cout << "finished filtering." << std::endl;
       }
@@ -310,13 +320,23 @@ namespace NavierStokes
         rk_method = std::unique_ptr<ODE::RungeKutta4>
           (new ODE::RungeKutta4(std::move(plain_rhs_function)));
       }
-    else if (parameters.filter_model == POD::FilterModel::L2Projection)
+    else if (parameters.filter_model == POD::FilterModel::L2Projection
+             or parameters.filter_model == POD::FilterModel::LerayHybrid)
       {
-        if (parameters.filter_mean)
+        if (parameters.filter_mean
+            and parameters.filter_model == POD::FilterModel::L2Projection)
           {
             StandardExceptions::ExcNotImplemented();
           }
-        outname << "pod-l2-projection-cutoff-" << parameters.cutoff_n;
+        if (parameters.filter_model == POD::FilterModel::L2Projection)
+          {
+            outname << "pod-l2-projection-cutoff-" << parameters.cutoff_n;
+          }
+        else
+          {
+            outname << "pod-leray-hybrid-cutoff-" << parameters.cutoff_n
+                    << "radius" << parameters.filter_radius;
+          }
         std::unique_ptr<POD::NavierStokes::L2ProjectionFilterRHS> rhs_function
         (new POD::NavierStokes::L2ProjectionFilterRHS
          (linear_operator, mass_matrix, joint_convection, nonlinear_operator,
