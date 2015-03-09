@@ -122,7 +122,7 @@ namespace POD
     }
 
 
-    PostFilter::PostFilter
+    PostDifferentialFilter::PostDifferentialFilter
     (const FullMatrix<double> &mass_matrix,
      const FullMatrix<double> &laplace_matrix,
      const FullMatrix<double> &boundary_matrix,
@@ -139,7 +139,8 @@ namespace POD
     }
 
 
-    void PostFilter::apply(Vector<double> &dst, const Vector<double> &src)
+    void PostDifferentialFilter::apply(Vector<double> &dst,
+                                       const Vector<double> &src)
     {
       mass_matrix.vmult(dst, src);
       factorized_post_filter_matrix.apply_lu_factorization(dst, false);

@@ -5,7 +5,9 @@
 using namespace dealii;
 namespace POD
 {
-  enum class FilterModel {Differential, L2Projection, PostFilter, LerayHybrid};
+  enum class FilterModel
+  {Differential, L2Projection, PostDifferentialFilter, PostL2ProjectionFilter,
+      LerayHybrid};
 
   namespace NavierStokes
   {

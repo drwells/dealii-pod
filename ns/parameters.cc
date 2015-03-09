@@ -22,7 +22,9 @@ POD::NavierStokes::Parameters::Parameters()
   {
     parameter_handler.declare_entry
     ("filter_model", "Differential",
-     Patterns::Selection("L2Projection|Differential|PostFilter|LerayHybrid"),
+     Patterns::Selection
+     ("L2Projection|Differential|PostL2ProjectionFilter|PostDifferentialFilter"
+      "|LerayHybrid"),
      " Filtering strategy for the POD-ROM.");
     parameter_handler.declare_entry
     ("filter_radius", "0.0", Patterns::Double(0.0), " Filter radius for the "
@@ -88,9 +90,10 @@ void POD::NavierStokes::Parameters::read_data(std::string file_name)
       {
         filter_model = POD::FilterModel::L2Projection;
       }
-    else if (parameter_handler.get("filter_model") == std::string("PostFilter"))
+    else if (parameter_handler.get("filter_model") ==
+             std::string("PostDifferentialFilter"))
       {
-        filter_model = POD::FilterModel::PostFilter;
+        filter_model = POD::FilterModel::PostDifferentialFilter;
       }
     else if (parameter_handler.get("filter_model") == std::string("LerayHybrid"))
       {

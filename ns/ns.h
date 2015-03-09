@@ -86,10 +86,10 @@ namespace POD
     };
 
 
-    class PostFilter : public ODE::OperatorBase
+    class PostDifferentialFilter : public ODE::OperatorBase
     {
     public:
-      PostFilter
+      PostDifferentialFilter
       (const FullMatrix<double> &mass_matrix,
        const FullMatrix<double> &laplace_matrix,
        const FullMatrix<double> &boundary_matrix,
