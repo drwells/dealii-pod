@@ -101,6 +101,16 @@ namespace POD
     };
 
 
+    class PostL2ProjectionFilter : public ODE::OperatorBase
+    {
+    public:
+      PostL2ProjectionFilter(const unsigned int cutoff_n);
+      virtual void apply(Vector<double> &dst, const Vector<double> &src);
+    private:
+      const unsigned int cutoff_n;
+    };
+
+
     // The `static_cast` is dumb, but necessary to make the compiler
     // happy. There is surely a better way to do this with block sparse
     // matrices.

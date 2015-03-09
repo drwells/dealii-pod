@@ -145,5 +145,21 @@ namespace POD
       mass_matrix.vmult(dst, src);
       factorized_post_filter_matrix.apply_lu_factorization(dst, false);
     }
+
+
+    PostL2ProjectionFilter::PostL2ProjectionFilter
+    (const unsigned int cutoff_n) : cutoff_n (cutoff_n) {}
+
+
+    void PostL2ProjectionFilter::apply(Vector<double> &dst,
+                                       const Vector<double> &src)
+    {
+      dst = src;
+      for (unsigned int pod_vector_n = cutoff_n; pod_vector_n < dst.size();
+           ++pod_vector_n)
+        {
+          dst[pod_vector_n] = 0.0;
+        }
+    }
   }
 }
