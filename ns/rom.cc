@@ -335,7 +335,7 @@ namespace NavierStokes
         else
           {
             outname << "pod-leray-hybrid-cutoff-" << parameters.cutoff_n
-                    << "radius" << parameters.filter_radius;
+                    << "-radius-" << parameters.filter_radius;
           }
         std::unique_ptr<POD::NavierStokes::L2ProjectionFilterRHS> rhs_function
         (new POD::NavierStokes::L2ProjectionFilterRHS
