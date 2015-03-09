@@ -88,7 +88,8 @@ namespace POD
      const std::vector<FullMatrix<double>> nonlinear_operator,
      const Vector<double> mean_contribution,
      const unsigned int cutoff_n) :
-      PlainRHS(linear_operator, mass_matrix, nonlinear_operator, mean_contribution),
+      PlainRHS(linear_operator, mass_matrix, nonlinear_operator,
+               mean_contribution),
       joint_convection {joint_convection},
       linear_operator_without_convection {linear_operator},
       cutoff_n {cutoff_n}
@@ -105,7 +106,8 @@ namespace POD
       dst += mean_contribution;
 
       auto filtered_src = src;
-      for (unsigned int pod_vector_n = cutoff_n; pod_vector_n < n_dofs; ++pod_vector_n)
+      for (unsigned int pod_vector_n = cutoff_n; pod_vector_n < n_dofs;
+           ++pod_vector_n)
         {
           filtered_src[pod_vector_n] = 0.0;
         }
