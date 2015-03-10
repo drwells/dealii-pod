@@ -98,7 +98,7 @@ void POD::NavierStokes::Parameters::read_data(std::string file_name)
     else if (parameter_handler.get("filter_model") ==
              std::string("PostL2ProjectionFilter"))
       {
-        filter_model = POD::FilterModel::PostDifferentialFilter;
+        filter_model = POD::FilterModel::PostL2ProjectionFilter;
       }
     else if (parameter_handler.get("filter_model") == std::string("LerayHybrid"))
       {
