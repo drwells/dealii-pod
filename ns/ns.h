@@ -86,10 +86,10 @@ namespace POD
     };
 
 
-    class PostFilter : public ODE::OperatorBase
+    class PostDifferentialFilter : public ODE::OperatorBase
     {
     public:
-      PostFilter
+      PostDifferentialFilter
       (const FullMatrix<double> &mass_matrix,
        const FullMatrix<double> &laplace_matrix,
        const FullMatrix<double> &boundary_matrix,
@@ -98,6 +98,16 @@ namespace POD
     private:
       const FullMatrix<double> mass_matrix;
       LAPACKFullMatrix<double> factorized_post_filter_matrix;
+    };
+
+
+    class PostL2ProjectionFilter : public ODE::OperatorBase
+    {
+    public:
+      PostL2ProjectionFilter(const unsigned int cutoff_n);
+      virtual void apply(Vector<double> &dst, const Vector<double> &src);
+    private:
+      const unsigned int cutoff_n;
     };
 
 

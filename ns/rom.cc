@@ -335,7 +335,7 @@ namespace NavierStokes
         else
           {
             outname << "pod-leray-hybrid-cutoff-" << parameters.cutoff_n
-                    << "radius" << parameters.filter_radius;
+                    << "-radius-" << parameters.filter_radius;
           }
         std::unique_ptr<POD::NavierStokes::L2ProjectionFilterRHS> rhs_function
         (new POD::NavierStokes::L2ProjectionFilterRHS
@@ -344,16 +344,32 @@ namespace NavierStokes
         rk_method = std::unique_ptr<ODE::RungeKutta4>
                     (new ODE::RungeKutta4(std::move(rhs_function)));
       }
-    else if (parameters.filter_model == POD::FilterModel::PostFilter)
+    else if (parameters.filter_model == POD::FilterModel::PostDifferentialFilter)
       {
         if (parameters.filter_mean)
           {
             StandardExceptions::ExcNotImplemented();
           }
-        outname << "pod-postfilter-radius-" << parameters.filter_radius;
-        std::unique_ptr<POD::NavierStokes::PostFilter> filter_function
-        (new POD::NavierStokes::PostFilter
-         (mass_matrix, laplace_matrix, boundary_matrix, parameters.filter_radius));
+        outname << "pod-postfilter-differential-radius-"
+                << parameters.filter_radius;
+        std::unique_ptr<POD::NavierStokes::PostDifferentialFilter> filter_function
+              (new POD::NavierStokes::PostDifferentialFilter
+              (mass_matrix, laplace_matrix, boundary_matrix,
+               parameters.filter_radius));
+        rk_method = std::unique_ptr<ODE::RungeKutta4PostFilter>
+                    (new ODE::RungeKutta4PostFilter
+                     (std::move(plain_rhs_function), std::move(filter_function)));
+      }
+    else if (parameters.filter_model == POD::FilterModel::PostL2ProjectionFilter)
+      {
+        if (parameters.filter_mean)
+          {
+            StandardExceptions::ExcNotImplemented();
+          }
+        outname << "pod-postfilter-cutoff-n-" << parameters.cutoff_n;
+        std::unique_ptr<POD::NavierStokes::PostL2ProjectionFilter> filter_function
+              (new POD::NavierStokes::PostL2ProjectionFilter
+              (parameters.cutoff_n));
         rk_method = std::unique_ptr<ODE::RungeKutta4PostFilter>
                     (new ODE::RungeKutta4PostFilter
                      (std::move(plain_rhs_function), std::move(filter_function)));

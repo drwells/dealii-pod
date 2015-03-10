@@ -6,7 +6,8 @@ subsection DNS Information
 end
 
 subsection Filtering Model Configuration
-  # use 'Differential', 'L2Projection', 'PostFilter', or 'LerayHybrid'
+  # use 'Differential', 'L2Projection', 'PostDifferentialFilter',
+  # 'PostL2ProjectionFilter', or 'LerayHybrid'
   set filter_model = Differential
   # while both may be specified, only one will be used.
   set filter_radius = 0.0
