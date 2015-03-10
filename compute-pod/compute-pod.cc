@@ -66,7 +66,6 @@ namespace POD
     DoFHandler<dim>                vector_dof_handler;
     QGauss<dim>                    quadrature_rule;
 
-
     void load_mesh();
     void compute_pod_basis();
     void save_pod_basis();
@@ -91,8 +90,8 @@ namespace POD
   void PODVectors<dim>::load_mesh()
   {
     std::filebuf file_buffer;
-    file_buffer.open (triangulation_file_name, std::ios::in);
-    std::istream in_stream (&file_buffer);
+    file_buffer.open(triangulation_file_name, std::ios::in);
+    std::istream in_stream(&file_buffer);
     boost::archive::text_iarchive archive(in_stream);
     archive >> triangulation;
 
