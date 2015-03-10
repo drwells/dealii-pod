@@ -19,7 +19,7 @@ namespace Leray
     x_system_matrix.add(-1.0*filter_radius*filter_radius, boundary_matrix);
     other_system_matrix.add(filter_radius*filter_radius, laplace_matrix);
 
-    const double diagonal_strengthening = 10000;
+    const double diagonal_strengthening = 100;
     x_preconditioner.initialize
       (x_system_matrix, SparseILU<double>::AdditionalData(diagonal_strengthening));
     other_preconditioner.initialize
