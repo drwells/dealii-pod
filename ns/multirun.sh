@@ -41,6 +41,22 @@ function run_filter_cutoff_n()
     done
 }
 
+function run_hybrid()
+{
+    local N_POD_VECTORS=$1
+    local CUTOFF_N=$2
+    local LINE_LEFT_PART='set cutoff_n ='
+    copy_files
+
+    perl -pi -e "s/(set filter_model =).*/\1 L2Projection/" parameter-file.prm
+    for CUTOFF_N in $(seq 0 $N_POD_VECTORS)
+    do
+        perl -pi -e "s/($LINE_LEFT_PART) .*/\1 $CUTOFF_N/" parameter-file.prm
+        make release 1>/dev/null 2>/dev/null && make run 1>/dev/null
+        printf "finished cutoff number %s\n" $CUTOFF_N
+    done
+}
+
 function run_post_filter()
 {
     local N_POD_VECTORS=$1
