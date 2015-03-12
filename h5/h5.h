@@ -151,7 +151,7 @@ namespace H5
   // TODO it should be possible to parameterize this by type.
   template<typename T>
   void save_full_matrix(std::string file_name,
-                         dealii::FullMatrix<T> &matrix)
+                        T &matrix)
   // Save a deal.II full matrix.
   {
     hid_t file_id = H5Fcreate(file_name.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT,
