@@ -12,6 +12,7 @@ namespace ODE
   {
   public:
     virtual void apply(Vector<double> &dst, const Vector<double> &src) = 0;
+    virtual ~OperatorBase() = default;
   };
 
   // Empty object, so that we may instantiate things without null pointers. It
@@ -28,6 +29,7 @@ namespace ODE
     RungeKuttaBase(std::unique_ptr<OperatorBase> rhs_function);
     virtual void step
     (double time_step, const Vector<double> &src, Vector<double> &dst) = 0;
+    virtual ~RungeKuttaBase() = default;
   protected:
     std::unique_ptr<OperatorBase> rhs_function;
     unsigned int n_dofs;
