@@ -312,8 +312,7 @@ namespace NavierStokes
     (new POD::NavierStokes::PlainRHS
      (linear_operator, mass_matrix, nonlinear_operator,
       mean_contribution_vector));
-    std::unique_ptr<ODE::RungeKutta4> rk_method
-    (new ODE::RungeKutta4());
+    std::unique_ptr<ODE::RungeKutta4> rk_method(new ODE::RungeKutta4());
     if (parameters.filter_model == POD::FilterModel::Differential)
       {
         outname << "pod-leray-radius-" << parameters.filter_radius;
