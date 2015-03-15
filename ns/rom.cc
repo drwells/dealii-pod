@@ -94,6 +94,8 @@ namespace NavierStokes
     unsigned int                     timestep_number;
 
     POD::NavierStokes::Parameters    parameters;
+
+    POD::PODOutput<dim>              pod_output;
   };
 
 
@@ -385,6 +387,12 @@ namespace NavierStokes
       /parameters.output_interval;
     FullMatrix<double> solutions(n_save_steps + 1, n_pod_dofs);
     unsigned int output_n = 0;
+    if (parameters.save_plot_pictures)
+      {
+        auto _outname = outname.str();
+        auto prefix = _outname.substr(0, _outname.size() - 3) + "-";
+        pod_output.reinit(dof_handler, mean_vector, pod_vectors, prefix);
+      }
     while (time < parameters.final_time)
       {
         old_solution = solution;
@@ -397,6 +405,12 @@ namespace NavierStokes
                 solutions(output_n, i) = solution(i);
               }
             ++output_n;
+            if (parameters.save_plot_pictures
+                and time >= parameters.output_time_start
+                and time <= parameters.output_time_stop)
+              {
+                pod_output.save_solution(solution, time, timestep_number);
+              }
           }
         ++timestep_number;
         time += parameters.time_step;

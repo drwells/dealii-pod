@@ -30,6 +30,8 @@ namespace POD
       double time_step;
 
       int patch_refinement;
+      double output_time_start;
+      double output_time_stop;
       int output_interval;
       bool save_plot_pictures;
 

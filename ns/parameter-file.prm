@@ -27,4 +27,6 @@ subsection Output Configuration
   set patch_refinement = 2
   set output_interval = 10
   set save_plot_pictures = false
+  set output_time_start = 200.0
+  set output_time_stop = 210.0
 end
