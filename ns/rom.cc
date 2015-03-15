@@ -103,13 +103,13 @@ namespace NavierStokes
   ROM<dim>::ROM()
     :
     fe {new FE_Q<dim>(2)},
-  quad {new QGauss<dim>(2)},
-  dof_handler {new DoFHandler<dim>},
-  pod_vectors {new std::vector<BlockVector<double>>},
-  mean_vector {new BlockVector<double>},
-  filtered_pod_vectors {new std::vector<BlockVector<double>>},
-  filtered_mean_vector {new BlockVector<double>},
-  timestep_number {0}
+    quad {new QGauss<dim>(2)},
+    dof_handler {new DoFHandler<dim>},
+    pod_vectors {new std::vector<BlockVector<double>>},
+    mean_vector {new BlockVector<double>},
+    filtered_pod_vectors {new std::vector<BlockVector<double>>},
+    filtered_mean_vector {new BlockVector<double>},
+    timestep_number {0}
   {
     parameters.read_data(std::string("parameter-file.prm"));
     time = parameters.initial_time;
