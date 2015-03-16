@@ -48,6 +48,7 @@
 #include "../h5/h5.h"
 #include "../pod/pod.h"
 #include "../ode/ode.h"
+#include "rk_factory.h"
 #include "ns.h"
 
 namespace NavierStokes
@@ -300,97 +301,22 @@ namespace NavierStokes
   void ROM<dim>::time_iterate()
   {
     Vector<double> old_solution(solution);
-    std::ostringstream outname;
-    outname.precision(8);
-    std::ostringstream outname_tail;
-    if (not parameters.filter_mean)
-      {
-        outname_tail << "-unfiltered-mean";
-      }
-    outname_tail << "-r-" << n_pod_dofs
-                 << "-Re-" << parameters.reynolds_n
-                 << ".h5";
-    std::unique_ptr<POD::NavierStokes::PlainRHS> plain_rhs_function
-    (new POD::NavierStokes::PlainRHS
-     (linear_operator, mass_matrix, nonlinear_operator,
-      mean_contribution_vector));
-    std::unique_ptr<ODE::RungeKutta4> rk_method(new ODE::RungeKutta4());
-    if (parameters.filter_model == POD::FilterModel::Differential)
-      {
-        outname << "pod-leray-radius-" << parameters.filter_radius;
-        rk_method = std::unique_ptr<ODE::RungeKutta4>
-                    (new ODE::RungeKutta4(std::move(plain_rhs_function)));
-      }
-    else if (parameters.filter_model == POD::FilterModel::L2Projection
-             or parameters.filter_model == POD::FilterModel::LerayHybrid)
-      {
-        if (parameters.filter_mean
-            and parameters.filter_model == POD::FilterModel::L2Projection)
-          {
-            StandardExceptions::ExcNotImplemented();
-          }
-        if (parameters.filter_model == POD::FilterModel::L2Projection)
-          {
-            outname << "pod-l2-projection-cutoff-" << parameters.cutoff_n;
-          }
-        else
-          {
-            outname << "pod-leray-hybrid-cutoff-" << parameters.cutoff_n
-                    << "-radius-" << parameters.filter_radius;
-          }
-        std::unique_ptr<POD::NavierStokes::L2ProjectionFilterRHS> rhs_function
-        (new POD::NavierStokes::L2ProjectionFilterRHS
-         (linear_operator, mass_matrix, joint_convection, nonlinear_operator,
-          mean_contribution_vector, parameters.cutoff_n));
-        rk_method = std::unique_ptr<ODE::RungeKutta4>
-                    (new ODE::RungeKutta4(std::move(rhs_function)));
-      }
-    else if (parameters.filter_model == POD::FilterModel::PostDifferentialFilter)
-      {
-        if (parameters.filter_mean)
-          {
-            StandardExceptions::ExcNotImplemented();
-          }
-        outname << "pod-postfilter-differential-radius-"
-                << parameters.filter_radius;
-        std::unique_ptr<POD::NavierStokes::PostDifferentialFilter> filter_function
-              (new POD::NavierStokes::PostDifferentialFilter
-              (mass_matrix, laplace_matrix, boundary_matrix,
-               parameters.filter_radius));
-        rk_method = std::unique_ptr<ODE::RungeKutta4PostFilter>
-                    (new ODE::RungeKutta4PostFilter
-                     (std::move(plain_rhs_function), std::move(filter_function)));
-      }
-    else if (parameters.filter_model == POD::FilterModel::PostL2ProjectionFilter)
-      {
-        if (parameters.filter_mean)
-          {
-            StandardExceptions::ExcNotImplemented();
-          }
-        outname << "pod-postfilter-cutoff-n-" << parameters.cutoff_n;
-        std::unique_ptr<POD::NavierStokes::PostL2ProjectionFilter> filter_function
-              (new POD::NavierStokes::PostL2ProjectionFilter
-              (parameters.cutoff_n));
-        rk_method = std::unique_ptr<ODE::RungeKutta4PostFilter>
-                    (new ODE::RungeKutta4PostFilter
-                     (std::move(plain_rhs_function), std::move(filter_function)));
-      }
-    else
-      {
-        StandardExceptions::ExcNotImplemented();
-      }
-    outname << outname_tail.str();
 
-    int n_save_steps =
-      boost::math::iround
+    std::string outname;
+    std::unique_ptr<ODE::RungeKuttaBase> rk_method {new ODE::RungeKutta4()};
+    std::tie(outname, rk_method) = POD::NavierStokes::rk_factory
+      (boundary_matrix, joint_convection, laplace_matrix,
+       linear_operator, mean_contribution_vector, mass_matrix,
+       nonlinear_operator, parameters);
+
+    int n_save_steps = boost::math::iround
       ((parameters.final_time - parameters.initial_time)/parameters.time_step)
       /parameters.output_interval;
     FullMatrix<double> solutions(n_save_steps + 1, n_pod_dofs);
     unsigned int output_n = 0;
     if (parameters.save_plot_pictures)
       {
-        auto _outname = outname.str();
-        auto prefix = _outname.substr(0, _outname.size() - 3) + "-";
+        auto prefix = outname.substr(0, outname.size() - 3) + "-";
         pod_output.reinit(dof_handler, mean_vector, pod_vectors, prefix);
       }
     while (time < parameters.final_time)
@@ -416,7 +342,7 @@ namespace NavierStokes
         time += parameters.time_step;
       }
 
-    H5::save_full_matrix(outname.str(), solutions);
+    H5::save_full_matrix(outname, solutions);
   }
 
 

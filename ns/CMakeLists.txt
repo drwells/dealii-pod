@@ -29,6 +29,8 @@ SET(TARGET_SRC
   ../pod/pod.cc
   ../ode/ode.h
   ../ode/ode.cc
+  rk_factory.h
+  rk_factory.cc
   )
 
 enable_language(CXX)
