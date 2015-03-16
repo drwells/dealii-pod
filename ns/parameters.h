@@ -1,3 +1,5 @@
+#ifndef __deal2_rom_ns_parameters_h
+#define __deal2_rom_ns_parameters_h
 #include <deal.II/base/parameter_handler.h>
 
 #include "fstream"
@@ -41,3 +43,4 @@ namespace POD
     };
   }
 }
+#endif
