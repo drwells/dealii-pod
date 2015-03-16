@@ -21,6 +21,9 @@
 #include <deal.II/dofs/dof_handler.h>
 #include <deal.II/dofs/dof_tools.h>
 
+#include <deal.II/fe/fe_q.h>
+#include <deal.II/fe/fe_values.h>
+
 #include <deal.II/grid/tria.h>
 
 #include <deal.II/lac/block_vector.h>
@@ -28,19 +31,13 @@
 #include <deal.II/lac/full_matrix.h>
 #include <deal.II/lac/compressed_sparsity_pattern.h>
 #include <deal.II/lac/sparse_matrix.h>
-#include <deal.II/lac/lapack_full_matrix.h>
-
-#include <deal.II/fe/fe_q.h>
-#include <deal.II/fe/fe_values.h>
 
 #include <deal.II/numerics/matrix_tools.h>
 
-#include <deal.II/bundled/boost/lexical_cast.hpp>
 #include <deal.II/bundled/boost/math/special_functions/round.hpp>
 
-#include <iostream>
-#include <sstream>
 #include <memory>
+#include <utility>
 #include <vector>
 
 #include "filter.h"
