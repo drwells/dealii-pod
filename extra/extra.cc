@@ -22,7 +22,8 @@ namespace extra
 
 
   std::string
-  int_to_string (const unsigned int value, const unsigned int digits)
+  int_to_string
+  (const unsigned int value, const unsigned int digits)
   {
     std::string lc_string = boost::lexical_cast<std::string>(value);
 
