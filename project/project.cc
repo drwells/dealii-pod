@@ -32,11 +32,11 @@
 #include <deal.II/numerics/matrix_tools.h>
 
 #include <algorithm>
-#include <glob.h>
 #include <iostream>
 #include <math.h>
 #include <vector>
 
+#include "../extra/extra.h"
 #include "../h5/h5.h"
 #include "../pod/pod.h"
 
@@ -70,22 +70,9 @@ int main(int argc, char **argv)
     SparseMatrix<double> full_mass_matrix(sparsity_pattern);
     MatrixCreator::create_mass_matrix(dof_handler, quad, full_mass_matrix);
 
-    glob_t glob_result;
-    const std::string snapshot_glob("snapshot-0*h5");
-
-    glob(snapshot_glob.c_str(), GLOB_TILDE, nullptr, &glob_result);
-    const unsigned int n_snapshots = glob_result.gl_pathc;
-    std::cout << "n_snapshots is " << n_snapshots << std::endl;
-    std::vector<std::string> file_names;
-    for (unsigned int snapshot_n = 0; snapshot_n < glob_result.gl_pathc; ++snapshot_n)
-      {
-        file_names.push_back(std::string(glob_result.gl_pathv[snapshot_n]));
-      }
-    globfree(&glob_result);
-    std::sort(file_names.begin(), file_names.end());
-
-    FullMatrix<double> pod_coefficients_matrix(n_snapshots, n_pod_vectors);
-    BlockVector<double> fluctuation_norms(1, n_snapshots);
+    auto file_names = extra::expand_file_names("snapshot-*h5");
+    FullMatrix<double> pod_coefficients_matrix(file_names.size(), n_pod_vectors);
+    BlockVector<double> fluctuation_norms(1, file_names.size());
     auto &fluctuations = fluctuation_norms.block(0);
     #pragma omp parallel for
     for (unsigned int snapshot_n = 0; snapshot_n < file_names.size(); ++snapshot_n)

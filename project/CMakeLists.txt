@@ -3,6 +3,8 @@ SET(TARGET "project")
 # Declare all source files the target consists of:
 SET(TARGET_SRC
   ${TARGET}.cc
+  ../extra/extra.cc
+  ../extra/extra.h
   ../pod/pod.cc
   ../pod/pod.h
   ../h5/h5.h

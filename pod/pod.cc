@@ -9,22 +9,13 @@ namespace POD
                       BlockVector<double> &mean_vector,
                       std::vector<BlockVector<double>> &pod_vectors)
   {
-    glob_t glob_result;
-    glob(pod_vector_glob.c_str(), GLOB_TILDE, nullptr, &glob_result);
-    pod_vectors.resize(glob_result.gl_pathc);
-    for (unsigned int i = 0; i < glob_result.gl_pathc; ++i)
+    for (auto &file_name : extra::expand_file_names(pod_vector_glob))
       {
-        BlockVector<double> pod_vector;
-        std::string file_name(glob_result.gl_pathv[i]);
-        auto start_number = file_name.find_first_of('0');
-        auto end_number = file_name.find_first_of('.');
-        unsigned int pod_vector_n = Utilities::string_to_int
-          (file_name.substr(start_number, end_number - start_number));
-        H5::load_block_vector(file_name, pod_vector);
-        pod_vectors.at(pod_vector_n) = std::move(pod_vector);
+        BlockVector<double> block_vector;
+        H5::load_block_vector(file_name, block_vector);
+        pod_vectors.push_back(std::move(block_vector));
       }
     H5::load_block_vector(mean_vector_file_name, mean_vector);
-    globfree(&glob_result);
   }
 
 

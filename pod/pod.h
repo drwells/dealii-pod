@@ -24,7 +24,6 @@
 #include <cmath>
 #include <complex>
 #include <fstream>
-#include <glob.h>
 #include <iostream>
 #include <memory>
 #include <vector>

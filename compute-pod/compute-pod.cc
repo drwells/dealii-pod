@@ -32,8 +32,8 @@
 #include <string>
 #include <sstream>
 #include <vector>
-#include <glob.h>
 
+#include "../extra/extra.h"
 #include "../pod/pod.h"
 #include "../h5/h5.h"
 
@@ -118,15 +118,7 @@ namespace POD
   template<int dim>
   void PODVectors<dim>::compute_pod_basis()
   {
-    std::vector<std::string> snapshot_file_names;
-
-    glob_t glob_result;
-    glob(snapshot_glob.c_str (), GLOB_TILDE, nullptr, &glob_result);
-    for (unsigned int i = 0; i < glob_result.gl_pathc; ++i)
-      {
-        snapshot_file_names.push_back (std::string (glob_result.gl_pathv[i]));
-      }
-    globfree(&glob_result);
+    auto snapshot_file_names = extra::expand_file_names(snapshot_glob);
 
     method_of_snapshots(mass_matrix, snapshot_file_names, n_pod_vectors,
                         center_trajectory, pod_result);
