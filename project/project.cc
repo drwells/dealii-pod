@@ -80,7 +80,7 @@ int main(int argc, char **argv)
         auto &file_name = file_names[snapshot_n];
         BlockVector<double> snapshot;
         #pragma omp critical
-       {
+        {
           H5::load_block_vector(file_name, snapshot);
         }
         snapshot -= mean_vector;
