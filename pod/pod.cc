@@ -97,9 +97,11 @@ namespace POD
     std::reverse(eigenvectors.begin(), eigenvectors.end());
     std::reverse(pod_basis.singular_values.begin(), pod_basis.singular_values.end());
 
-    pod_basis.vectors.resize(n_pod_vectors);
+    const unsigned int n_actual_pod_vectors = std::min(n_snapshots, n_pod_vectors);
+    pod_basis.vectors.resize(n_actual_pod_vectors);
     #pragma omp parallel for
-    for (unsigned int eigenvector_n = 0; eigenvector_n < n_pod_vectors; ++eigenvector_n)
+    for (unsigned int eigenvector_n = 0; eigenvector_n < n_actual_pod_vectors;
+         ++eigenvector_n)
       {
         BlockVector<double> pod_vector(n_blocks, n_dofs_per_block);
         pod_vector.collect_sizes();
