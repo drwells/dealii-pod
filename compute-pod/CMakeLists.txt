@@ -9,6 +9,8 @@ SET(TARGET_SRC
   ../pod/pod.cc
   ../pod/pod.h
   ../h5/h5.h
+  parameters.cc
+  parameters.h
   )
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -fopenmp -O3 -fmax-errors=3")
 

@@ -7,13 +7,14 @@ set of snapshots.
 
 Required Files
 --------------
-This application assumes that `triangulation.txt` (the standard text
+By default, this application assumes that `triangulation.txt` (the standard text
 serialization of the triangulation) is in the current directory. It also assumes
-that the snapshots are in the working directory and match the glob
-`snapshot-*h5`.
+(also by default)that the snapshots are in the working directory and match the
+glob `snapshot-*h5`. Both the file name and the glob may be changed in the
+configuration file.
 
 Output
 ------
 This application outputs the POD vectors and mean vector calculated from the
-given snapshots. It also saves an `XDMF` file and enough information to plot the
-POD vectors.
+given snapshots. Optionally, it may also saves an `XDMF` file and enough
+information to plot the POD vectors or the reduced mass matrix.

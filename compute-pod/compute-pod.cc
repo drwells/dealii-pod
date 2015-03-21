@@ -1,6 +1,7 @@
 #include <deal.II/base/utilities.h>
 #include <deal.II/base/quadrature_lib.h>
 
+#include <deal.II/lac/full_matrix.h>
 #include <deal.II/lac/vector.h>
 #include <deal.II/lac/compressed_sparsity_pattern.h>
 #include <deal.II/lac/sparse_matrix.h>
@@ -36,35 +37,30 @@
 #include "../extra/extra.h"
 #include "../pod/pod.h"
 #include "../h5/h5.h"
+#include "parameters.h"
 
 
 namespace POD
 {
   using namespace dealii;
 
-  constexpr unsigned int deg = 2;
-  constexpr bool center_trajectory = true;
-
   template<int dim>
   class PODVectors
   {
   public:
-    PODVectors(bool renumber);
+    PODVectors(const Parameters &parameters);
     void run();
   private:
-    bool                           renumber;
-    unsigned int                   n_pod_vectors;
-    std::string                    snapshot_glob;
-    std::string                    triangulation_file_name;
-    SparsityPattern                sparsity_pattern;
-    dealii::SparseMatrix<double>   mass_matrix;
-    POD::BlockPODBasis             pod_result;
-    Triangulation<dim>             triangulation;
-    FE_Q<dim>                      fe;
-    DoFHandler<dim>                dof_handler;
-    FESystem<dim>                  vector_fe;
-    DoFHandler<dim>                vector_dof_handler;
-    QGauss<dim>                    quadrature_rule;
+    const Parameters     parameters;
+    Triangulation<dim>   triangulation;
+    SparsityPattern      sparsity_pattern;
+    const FE_Q<dim>      fe;
+    DoFHandler<dim>      dof_handler;
+    const QGauss<dim>    quadrature_rule;
+    SparseMatrix<double> mass_matrix;
+    POD::BlockPODBasis   pod_result;
+    const FESystem<dim>  vector_fe;
+    DoFHandler<dim>      vector_dof_handler;
 
     void load_mesh();
     void compute_pod_basis();
@@ -73,24 +69,20 @@ namespace POD
 
 
   template<int dim>
-  PODVectors<dim>::PODVectors (bool renumber)
+  PODVectors<dim>::PODVectors(const Parameters &parameters)
     :
-    n_pod_vectors {100},
-    fe(deg), // TODO this depends on the parameter file.
-    vector_fe(fe, dim),
-    quadrature_rule(deg + 3)
-  {
-    this->renumber = renumber;
-    snapshot_glob = "snapshot-*.h5";
-    triangulation_file_name = "triangulation.txt";
-  }
+    parameters(parameters),
+    fe(parameters.fe_order),
+    quadrature_rule(parameters.fe_order + 3),
+    vector_fe(fe, dim)
+  {}
 
 
   template<int dim>
   void PODVectors<dim>::load_mesh()
   {
     std::filebuf file_buffer;
-    file_buffer.open(triangulation_file_name, std::ios::in);
+    file_buffer.open(parameters.triangulation_file_name, std::ios::in);
     std::istream in_stream(&file_buffer);
     boost::archive::text_iarchive archive(in_stream);
     archive >> triangulation;
@@ -98,14 +90,11 @@ namespace POD
     dof_handler.initialize(triangulation, fe);
     vector_dof_handler.initialize(triangulation, vector_fe);
 
-    if (renumber)
+    if (parameters.renumber)
       {
-        std::cout << "renumbering." << std::endl;
         DoFRenumbering::boost::Cuthill_McKee(dof_handler);
         DoFRenumbering::boost::Cuthill_McKee(vector_dof_handler);
       }
-
-    std::cout << "DoFs: " << dof_handler.n_dofs() << std::endl;
 
     CompressedSparsityPattern c_sparsity(dof_handler.n_dofs());
     DoFTools::make_sparsity_pattern(dof_handler, c_sparsity);
@@ -118,52 +107,36 @@ namespace POD
   template<int dim>
   void PODVectors<dim>::compute_pod_basis()
   {
-    auto snapshot_file_names = extra::expand_file_names(snapshot_glob);
+    auto snapshot_file_names = extra::expand_file_names(parameters.snapshot_glob);
 
-    method_of_snapshots(mass_matrix, snapshot_file_names, n_pod_vectors,
-                        center_trajectory, pod_result);
-    // check orthogonality.
-    dealii::BlockVector<double> temp(pod_result.vectors.at(0).n_blocks(),
-                                     pod_result.vectors.at(0).block(0).size());
-    for (unsigned int i = 0; i < pod_result.get_n_pod_vectors(); ++i)
-      {
-        auto &right_vector = pod_result.vectors.at(i);
-        for (unsigned int dim_n = 0; dim_n < dim; ++dim_n)
-          {
-            mass_matrix.vmult(temp.block(dim_n), right_vector.block(dim_n));
-          }
-        for (unsigned int j = 0; j < pod_result.get_n_pod_vectors(); ++j)
-          {
-            auto &left_vector = pod_result.vectors.at(j);
-            double result = left_vector * temp;
-            constexpr double tolerance = 1e-12;
-            if (i == j)
-              {
-                if (std::abs(result - 1.0) > tolerance)
-                  {
-                    std::cerr << "C(" << j << ", " << i << ") = "
-                              << result << std::endl;
-                    Assert(std::abs(result - 1) < tolerance, ExcInternalError());
-                  }
-              }
-            else
-              {
-                if (std::abs(result) > tolerance)
-                  {
-                    std::cerr << "C(" << i << ", " << j << ") = "
-                              << result << std::endl;
-                    Assert(std::abs(result) < tolerance, ExcInternalError());
-                  }
-              }
-          }
-      }
-    std::cout << "computed the POD basis." << std::endl;
+    method_of_snapshots(mass_matrix, snapshot_file_names, parameters.n_pod_vectors,
+                        parameters.center_trajectory, pod_result);
   }
 
 
   template<int dim>
   void PODVectors<dim>::save_pod_basis()
   {
+    if (parameters.save_mass_matrix)
+      {
+        BlockVector<double> temp(pod_result.vectors.at(0).n_blocks(),
+                                 pod_result.vectors.at(0).block(0).size());
+        FullMatrix<double> rom_mass_matrix(pod_result.get_n_pod_vectors());
+        for (unsigned int j = 0; j < pod_result.get_n_pod_vectors(); ++j)
+          {
+            for (unsigned int dim_n = 0; dim_n < dim; ++dim_n)
+              {
+                mass_matrix.vmult
+                  (temp.block(dim_n), pod_result.vectors.at(j).block(dim_n));
+              }
+            for (unsigned int i = 0; i < pod_result.get_n_pod_vectors(); ++i)
+              {
+                rom_mass_matrix(i, j) = pod_result.vectors.at(i) * temp;
+              }
+          }
+        H5::save_full_matrix("rom-mass-matrix.h5", rom_mass_matrix);
+      }
+
     std::ofstream singular_values_stream;
     singular_values_stream.open("singular_values.txt");
     for (auto singular_value : pod_result.singular_values)
@@ -186,63 +159,66 @@ namespace POD
                                 + ".h5";
         H5::save_block_vector(file_name, pod_result.vectors.at(i));
 
-        // save the information in a plot-friendly format.
-        std::vector<std::string> solution_names(dim, "v");
-        std::string plot_file_name = "pod-vector-plot-"
-                                     + Utilities::int_to_string(i, 7) + ".h5";
-
-        DataOut<dim> data_out;
-        data_out.attach_dof_handler(vector_dof_handler);
-        std::vector<DataComponentInterpretation::DataComponentInterpretation>
-        component_interpretation
-        (dim,
-         DataComponentInterpretation::component_is_part_of_vector);
-        DataOutBase::DataOutFilter data_filter
-        (DataOutBase::DataOutFilterFlags(true, true));
-
-        dealii::Vector<double> vector_solution (vector_dof_handler.n_dofs());
-        std::vector<types::global_dof_index> loc_vector_dof_indices (vector_fe.dofs_per_cell),
-            loc_component_dof_indices (fe.dofs_per_cell);
-        typename DoFHandler<dim>::active_cell_iterator
-        vector_cell = vector_dof_handler.begin_active(),
-        vector_endc = vector_dof_handler.end(),
-        component_cell = dof_handler.begin_active();
-        for (; vector_cell != vector_endc; ++vector_cell, ++component_cell)
+        if (parameters.save_plot_pictures)
           {
-            vector_cell->get_dof_indices(loc_vector_dof_indices);
-            component_cell->get_dof_indices(loc_component_dof_indices);
-            for (unsigned int j = 0; j < vector_fe.dofs_per_cell; ++j)
+            std::vector<std::string> solution_names(dim, "v");
+            std::string plot_file_name = "pod-vector-plot-"
+              + Utilities::int_to_string(i, 7) + ".h5";
+
+            DataOut<dim> data_out;
+            data_out.attach_dof_handler(vector_dof_handler);
+            std::vector<DataComponentInterpretation::DataComponentInterpretation>
+              component_interpretation
+              (dim,
+               DataComponentInterpretation::component_is_part_of_vector);
+            DataOutBase::DataOutFilter data_filter
+              (DataOutBase::DataOutFilterFlags(true, true));
+
+            dealii::Vector<double> vector_solution (vector_dof_handler.n_dofs());
+            std::vector<types::global_dof_index> loc_vector_dof_indices
+              (vector_fe.dofs_per_cell), loc_component_dof_indices(fe.dofs_per_cell);
+            typename DoFHandler<dim>::active_cell_iterator
+              vector_cell = vector_dof_handler.begin_active(),
+              vector_endc = vector_dof_handler.end(),
+              component_cell = dof_handler.begin_active();
+            for (; vector_cell != vector_endc; ++vector_cell, ++component_cell)
               {
-                switch (vector_fe.system_to_base_index(j).first.first)
+                vector_cell->get_dof_indices(loc_vector_dof_indices);
+                component_cell->get_dof_indices(loc_component_dof_indices);
+                for (unsigned int j = 0; j < vector_fe.dofs_per_cell; ++j)
                   {
-                  // TODO this is sloppy cut-and-paste from step-35
-                  case 0:
-                    vector_solution(loc_vector_dof_indices[j]) =
-                      pod_result.vectors[i].block(vector_fe.system_to_base_index(j).first.second)
-                      (loc_component_dof_indices[vector_fe.system_to_base_index(j).second]);
-                    break;
-                  default:
-                    ExcInternalError();
+                    switch (vector_fe.system_to_base_index(j).first.first)
+                      {
+                        // TODO this is sloppy cut-and-paste from step-35
+                      case 0:
+                        vector_solution(loc_vector_dof_indices[j]) =
+                          pod_result.vectors[i].block
+                          (vector_fe.system_to_base_index(j).first.second)
+                          (loc_component_dof_indices[vector_fe.system_to_base_index(j).second]);
+                        break;
+                      default:
+                        ExcInternalError();
+                      }
                   }
               }
+
+            data_out.add_data_vector
+              (vector_solution, solution_names, DataOut<dim>::type_dof_data,
+               component_interpretation);
+            data_out.build_patches (2);
+            data_out.write_filtered_data(data_filter);
+
+            data_out.write_hdf5_parallel
+              (data_filter, write_mesh, mesh_file_name,
+                                         plot_file_name, MPI_COMM_WORLD);
+            write_mesh = false;
+
+            auto new_xdmf_entry = data_out.create_xdmf_entry
+              (data_filter, mesh_file_name, plot_file_name,
+               static_cast<double>(i), MPI_COMM_WORLD);
+            xdmf_entries.push_back(std::move(new_xdmf_entry));
+            data_out.write_xdmf_file(xdmf_entries, xdmf_filename, MPI_COMM_WORLD);
           }
-
-        data_out.add_data_vector (vector_solution,
-                                  solution_names,
-                                  DataOut<dim>::type_dof_data,
-                                  component_interpretation);
-        data_out.build_patches (2);
-        data_out.write_filtered_data(data_filter);
-
-        data_out.write_hdf5_parallel(data_filter, write_mesh, mesh_file_name,
-                                     plot_file_name, MPI_COMM_WORLD);
-        write_mesh = false;
-
-        auto new_xdmf_entry = data_out.create_xdmf_entry
-                              (data_filter, mesh_file_name, plot_file_name,
-                               static_cast<double>(i), MPI_COMM_WORLD);
-        xdmf_entries.push_back(std::move(new_xdmf_entry));
-        data_out.write_xdmf_file(xdmf_entries, xdmf_filename, MPI_COMM_WORLD);
       }
   }
 
@@ -263,7 +239,9 @@ int main(int argc, char **argv)
   Utilities::MPI::MPI_InitFinalize mpi_initialization
   (argc, argv, numbers::invalid_unsigned_int);
   {
-    PODVectors<3> pod_vectors(false);
+    Parameters parameters;
+    parameters.read_data("parameter-file.prm");
+    PODVectors<3> pod_vectors(parameters);
     pod_vectors.run();
   }
 }
