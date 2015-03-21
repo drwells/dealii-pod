@@ -9,7 +9,6 @@ namespace extra
     std::vector<std::string> file_names;
     glob_t glob_result;
     glob(file_name_glob.c_str(), GLOB_TILDE, nullptr, &glob_result);
-    const unsigned int n_files = glob_result.gl_pathc;
     for (unsigned int file_name_n = 0; file_name_n < glob_result.gl_pathc;
          ++file_name_n)
       {
