@@ -85,21 +85,10 @@ namespace POD
     std::vector<Vector<double>> eigenvectors(n_snapshots);
     correlation_matrix.compute_generalized_eigenvalues_symmetric(identity,
         eigenvectors);
-    std::cout << "computed eigenvalues and eigenvectors." << std::endl;
-    std::cout << "eigenvectors size: " << eigenvectors.size() << std::endl;
     pod_basis.singular_values.resize(n_snapshots);
     for (i = 0; i < n_snapshots; ++i)
       {
         // As the matrix has provably positive real eigenvalues...
-        std::complex<double> eigenvalue = correlation_matrix.eigenvalue(i);
-        std::cout << "eigenvalue number "
-                  << i
-                  << " is "
-                  << eigenvalue.real()
-                  << " + "
-                  << eigenvalue.imag()
-                  << "j"
-                  << std::endl;
         // Assert(eigenvalue.imag() == 0.0, ExcInternalError());
         // Assert(eigenvalue.real() > 0.0, ExcInternalError());
         pod_basis.singular_values.at(i) = std::sqrt(eigenvalue.real());
