@@ -9,7 +9,7 @@ Required Files
 --------------
 By default, this application assumes that `triangulation.txt` (the standard text
 serialization of the triangulation) is in the current directory. It also assumes
-(also by default)that the snapshots are in the working directory and match the
+(also by default) that the snapshots are in the working directory and match the
 glob `snapshot-*h5`. Both the file name and the glob may be changed in the
 configuration file.
 
