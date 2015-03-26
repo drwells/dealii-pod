@@ -119,21 +119,9 @@ namespace POD
   {
     if (parameters.save_mass_matrix)
       {
-        BlockVector<double> temp(pod_result.vectors.at(0).n_blocks(),
-                                 pod_result.vectors.at(0).block(0).size());
         FullMatrix<double> rom_mass_matrix(pod_result.get_n_pod_vectors());
-        for (unsigned int j = 0; j < pod_result.get_n_pod_vectors(); ++j)
-          {
-            for (unsigned int dim_n = 0; dim_n < dim; ++dim_n)
-              {
-                mass_matrix.vmult
-                  (temp.block(dim_n), pod_result.vectors.at(j).block(dim_n));
-              }
-            for (unsigned int i = 0; i < pod_result.get_n_pod_vectors(); ++i)
-              {
-                rom_mass_matrix(i, j) = pod_result.vectors.at(i) * temp;
-              }
-          }
+        POD::create_reduced_matrix
+          (pod_result.vectors, mass_matrix, rom_mass_matrix);
         H5::save_full_matrix("rom-mass-matrix.h5", rom_mass_matrix);
       }
 
