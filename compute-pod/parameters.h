@@ -18,6 +18,7 @@ public:
   bool center_trajectory;
 
   bool save_mass_matrix;
+  bool save_laplace_matrix;
   bool save_plot_pictures;
 
   void read_data(const std::string &file_name);
