@@ -1,0 +1,12 @@
+subsection DNS Information
+  set fe_order = 2
+  set outflow_label = 3
+  set renumber = false
+  set triangulation_file_name = triangulation.txt
+end
+
+subsection ROM Configuration
+  set pod_vector_glob = pod-vector*h5
+  set mean_vector_file_name = mean-vector.h5
+  set filter_radius =  1
+end

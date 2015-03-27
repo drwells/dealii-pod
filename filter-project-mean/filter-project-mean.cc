@@ -22,9 +22,11 @@
 #include <deal.II/grid/tria.h>
 
 #include <deal.II/lac/block_vector.h>
+#include <deal.II/lac/compressed_sparsity_pattern.h>
 #include <deal.II/lac/vector.h>
 
 #include <deal.II/numerics/data_out.h>
+#include <deal.II/numerics/matrix_tools.h>
 
 #include <deal.II/bundled/boost/archive/text_iarchive.hpp>
 // needed to get around the "save the dof handler issue"
@@ -35,9 +37,11 @@
 #include <iostream>
 #include <math.h>
 #include <vector>
+#include <memory>
 
 #include "../h5/h5.h"
 #include "../pod/pod.h"
+#include "../ns/ns.h"
 #include "../extra/extra.h"
 #include "parameters.h"
 
@@ -63,8 +67,9 @@ int main(int argc, char **argv)
 
   std::vector<BlockVector<double>> pod_vectors;
   BlockVector<double> mean_vector;
-  POD::load_pod_basis(parameters.pod_vector_glob, parameters.mean_vector_file_name,
-                      parameters.mean_vector, parameters.pod_vectors);
+  POD::load_pod_basis
+    (parameters.pod_vector_glob, parameters.mean_vector_file_name, mean_vector,
+     pod_vectors);
   CompressedSparsityPattern c_sparsity(dof_handler.n_dofs());
   DoFTools::make_sparsity_pattern(dof_handler, c_sparsity);
   sparsity_pattern.copy_from(c_sparsity);
@@ -72,20 +77,20 @@ int main(int argc, char **argv)
   FullMatrix<double> mass_matrix;
   FullMatrix<double> laplace_matrix;
   FullMatrix<double> boundary_matrix;
-  SparseMatrix<double> full_mass_matrix;
+  SparseMatrix<double> full_mass_matrix(sparsity_pattern);
   {
     {
       MatrixCreator::create_mass_matrix(dof_handler, quad, full_mass_matrix);
       POD::create_reduced_matrix(pod_vectors, full_mass_matrix, mass_matrix);
     }
     {
-      SparseMatrix<double> full_laplace_matrix;
+      SparseMatrix<double> full_laplace_matrix(sparsity_pattern);
       MatrixCreator::create_laplace_matrix(dof_handler, quad, full_laplace_matrix);
       POD::create_reduced_matrix(pod_vectors, full_laplace_matrix, laplace_matrix);
     }
     {
-      QGauss<dim - 1> face_quad(fe->degree + 3);
-      SparseMatrix<double> full_boundary_matrix;
+      QGauss<dim - 1> face_quad(fe.degree + 3);
+      SparseMatrix<double> full_boundary_matrix(sparsity_pattern);
       POD::NavierStokes::create_boundary_matrix
         (dof_handler, face_quad, parameters.outflow_label, full_boundary_matrix);
       POD::create_reduced_matrix(pod_vectors, full_boundary_matrix, boundary_matrix);
@@ -95,7 +100,7 @@ int main(int argc, char **argv)
   LAPACKFullMatrix<double> filter_matrix(pod_vectors.size());
   {
     FullMatrix<double> temp(pod_vectors.size());
-    temp += mass_matrix;
+    temp.add(1.0, mass_matrix);
     temp.add(parameters.filter_radius*parameters.filter_radius, laplace_matrix);
     temp.add(-1.0*parameters.filter_radius*parameters.filter_radius, boundary_matrix);
     filter_matrix = temp;
@@ -114,13 +119,41 @@ int main(int argc, char **argv)
       rhs_vector(i) = lhs_vector * pod_vectors.at(i);
     }
 
-  Vector<double> solution(pod_vectors.n_pod_vectors);
+  auto solution = rhs_vector;
   filter_matrix.compute_lu_factorization();
-  filter_matrix.apply_lu_factorization(solution);
+  filter_matrix.apply_lu_factorization(solution, false);
 
   BlockVector<double> projected_mean_vector(dim, pod_vectors.at(0).block(0).size());
   for (unsigned int i = 0; i < pod_vectors.size(); ++i)
     {
       projected_mean_vector.add(solution[i], pod_vectors.at(i));
+      std::cout << solution[i] << std::endl;
     }
+  H5::save_block_vector("projected_mean_vector.h5", projected_mean_vector);
+  // compute relevant L2 norms
+  double mean_l2_norm {0.0};
+  double projected_mean_l2_norm {0.0};
+  double mean_difference {0.0};
+  Vector<double> temp(pod_vectors.at(0).block(0).size());
+  Vector<double> temp2(pod_vectors.at(0).block(0).size());
+  for (unsigned int dim_n = 0; dim_n < dim; ++dim_n)
+    {
+      full_mass_matrix.vmult(temp, mean_vector.block(dim_n));
+      mean_l2_norm += mean_vector.block(dim_n) * temp;
+      full_mass_matrix.vmult(temp, projected_mean_vector.block(dim_n));
+      projected_mean_l2_norm += projected_mean_vector.block(dim_n) * temp;
+      temp2 = mean_vector.block(dim_n);
+      temp2 -= projected_mean_vector.block(dim_n);
+      full_mass_matrix.vmult(temp, temp2);
+      mean_difference += temp * temp2;
+    }
+  std::cout << "projected mean L2 norm: "
+            << std::sqrt(projected_mean_l2_norm)
+            << std::endl;
+  std::cout << "mean L2 norm: "
+            << std::sqrt(mean_l2_norm)
+            << std::endl;
+  std::cout << "mean difference L2 norm: "
+            << std::sqrt(mean_difference)
+            << std::endl;
 }

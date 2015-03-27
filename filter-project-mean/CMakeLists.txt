@@ -3,11 +3,15 @@ SET(TARGET "filter-project-mean")
 # Declare all source files the target consists of:
 SET(TARGET_SRC
   ${TARGET}.cc
+  ../ns/ns.cc
+  ../ns/ns.h
   ../pod/pod.cc
   ../pod/pod.h
   ../extra/extra.h
   ../extra/extra.cc
   ../h5/h5.h
+  parameters.cc
+  parameters.h
   )
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -fopenmp -O3 -fmax-errors=3")
 
