@@ -41,6 +41,7 @@
 
 #include "../h5/h5.h"
 #include "../pod/pod.h"
+#include "../ns/filter.h"
 #include "../ns/ns.h"
 #include "../extra/extra.h"
 #include "parameters.h"
@@ -77,25 +78,20 @@ int main(int argc, char **argv)
   FullMatrix<double> mass_matrix;
   FullMatrix<double> laplace_matrix;
   FullMatrix<double> boundary_matrix;
-  SparseMatrix<double> full_mass_matrix(sparsity_pattern);
-  {
-    {
-      MatrixCreator::create_mass_matrix(dof_handler, quad, full_mass_matrix);
-      POD::create_reduced_matrix(pod_vectors, full_mass_matrix, mass_matrix);
-    }
-    {
-      SparseMatrix<double> full_laplace_matrix(sparsity_pattern);
-      MatrixCreator::create_laplace_matrix(dof_handler, quad, full_laplace_matrix);
-      POD::create_reduced_matrix(pod_vectors, full_laplace_matrix, laplace_matrix);
-    }
-    {
-      QGauss<dim - 1> face_quad(fe.degree + 3);
-      SparseMatrix<double> full_boundary_matrix(sparsity_pattern);
-      POD::NavierStokes::create_boundary_matrix
-        (dof_handler, face_quad, parameters.outflow_label, full_boundary_matrix);
-      POD::create_reduced_matrix(pod_vectors, full_boundary_matrix, boundary_matrix);
-    }
-  }
+  auto full_mass_matrix = std::make_shared<SparseMatrix<double>>
+    (sparsity_pattern);
+  auto full_laplace_matrix = std::make_shared<SparseMatrix<double>>
+    (sparsity_pattern);
+  auto full_boundary_matrix = std::make_shared<SparseMatrix<double>>
+    (sparsity_pattern);
+  MatrixCreator::create_mass_matrix(dof_handler, quad, *full_mass_matrix);
+  POD::create_reduced_matrix(pod_vectors, *full_mass_matrix, mass_matrix);
+  MatrixCreator::create_laplace_matrix(dof_handler, quad, *full_laplace_matrix);
+  POD::create_reduced_matrix(pod_vectors, *full_laplace_matrix, laplace_matrix);
+  QGauss<dim - 1> face_quad(fe.degree + 3);
+  POD::NavierStokes::create_boundary_matrix
+    (dof_handler, face_quad, parameters.outflow_label, *full_boundary_matrix);
+  POD::create_reduced_matrix(pod_vectors, *full_boundary_matrix, boundary_matrix);
 
   LAPACKFullMatrix<double> filter_matrix(pod_vectors.size());
   {
@@ -105,6 +101,11 @@ int main(int argc, char **argv)
     temp.add(-1.0*parameters.filter_radius*parameters.filter_radius, boundary_matrix);
     filter_matrix = temp;
   }
+  Leray::LerayFilter filter
+    (parameters.filter_radius, full_mass_matrix, *full_boundary_matrix,
+     *full_laplace_matrix);
+  auto fe_filtered_mean_vector = mean_vector;
+  filter.apply(fe_filtered_mean_vector, mean_vector);
 
   // assemble the 'load vector'.
   Vector<double> rhs_vector(pod_vectors.size());
@@ -113,7 +114,7 @@ int main(int argc, char **argv)
       BlockVector<double> lhs_vector(3, pod_vectors.at(0).block(0).size());
       for (unsigned int dim_n = 0; dim_n < dim; ++dim_n)
         {
-          full_mass_matrix.vmult
+          full_mass_matrix->vmult
             (lhs_vector.block(dim_n), mean_vector.block(dim_n));
         }
       rhs_vector(i) = lhs_vector * pod_vectors.at(i);
@@ -123,13 +124,15 @@ int main(int argc, char **argv)
   filter_matrix.compute_lu_factorization();
   filter_matrix.apply_lu_factorization(solution, false);
 
-  BlockVector<double> projected_mean_vector(dim, pod_vectors.at(0).block(0).size());
+  BlockVector<double> pod_projected_mean_vector
+    (dim, pod_vectors.at(0).block(0).size());
   for (unsigned int i = 0; i < pod_vectors.size(); ++i)
     {
-      projected_mean_vector.add(solution[i], pod_vectors.at(i));
+      pod_projected_mean_vector.add(solution[i], pod_vectors.at(i));
       std::cout << solution[i] << std::endl;
     }
-  H5::save_block_vector("projected_mean_vector.h5", projected_mean_vector);
+  H5::save_block_vector("pod-filtered-mean-vector.h5", pod_projected_mean_vector);
+  H5::save_block_vector("fe-filtered-mean-vector.h5", fe_filtered_mean_vector);
   // compute relevant L2 norms
   double mean_l2_norm {0.0};
   double projected_mean_l2_norm {0.0};
@@ -138,13 +141,13 @@ int main(int argc, char **argv)
   Vector<double> temp2(pod_vectors.at(0).block(0).size());
   for (unsigned int dim_n = 0; dim_n < dim; ++dim_n)
     {
-      full_mass_matrix.vmult(temp, mean_vector.block(dim_n));
-      mean_l2_norm += mean_vector.block(dim_n) * temp;
-      full_mass_matrix.vmult(temp, projected_mean_vector.block(dim_n));
-      projected_mean_l2_norm += projected_mean_vector.block(dim_n) * temp;
-      temp2 = mean_vector.block(dim_n);
-      temp2 -= projected_mean_vector.block(dim_n);
-      full_mass_matrix.vmult(temp, temp2);
+      full_mass_matrix->vmult(temp, fe_filtered_mean_vector.block(dim_n));
+      mean_l2_norm += fe_filtered_mean_vector.block(dim_n) * temp;
+      full_mass_matrix->vmult(temp, pod_projected_mean_vector.block(dim_n));
+      projected_mean_l2_norm += pod_projected_mean_vector.block(dim_n) * temp;
+      temp2 = fe_filtered_mean_vector.block(dim_n);
+      temp2 -= pod_projected_mean_vector.block(dim_n);
+      full_mass_matrix->vmult(temp, temp2);
       mean_difference += temp * temp2;
     }
   std::cout << "projected mean L2 norm: "

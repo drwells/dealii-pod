@@ -6,8 +6,8 @@ namespace Leray
   LerayFilter::LerayFilter
   (const double filter_radius,
    std::shared_ptr<SparseMatrix<double>> mass_matrix,
-   SparseMatrix<double> &boundary_matrix,
-   SparseMatrix<double> &laplace_matrix) :
+   const SparseMatrix<double> &boundary_matrix,
+   const SparseMatrix<double> &laplace_matrix) :
     filter_radius {filter_radius},
     mass_matrix {mass_matrix}
   {

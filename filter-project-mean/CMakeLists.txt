@@ -3,6 +3,8 @@ SET(TARGET "filter-project-mean")
 # Declare all source files the target consists of:
 SET(TARGET_SRC
   ${TARGET}.cc
+  ../ns/filter.cc
+  ../ns/filter.h
   ../ns/ns.cc
   ../ns/ns.h
   ../pod/pod.cc

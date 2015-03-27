@@ -18,8 +18,8 @@ namespace Leray
   public:
     LerayFilter(const double filter_radius,
                 std::shared_ptr<SparseMatrix<double>> mass_matrix,
-                SparseMatrix<double> &laplace_matrix,
-                SparseMatrix<double> &boundary_matrix);
+                const SparseMatrix<double> &laplace_matrix,
+                const SparseMatrix<double> &boundary_matrix);
     void apply(BlockVector<double> &dst, const BlockVector<double> &src);
   private:
     const double filter_radius;
