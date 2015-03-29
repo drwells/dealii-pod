@@ -1,5 +1,5 @@
 plot-y-velocity
-===========
+===============
 Goals
 -----
 The goal of this application is to extract the second component of the velocity
