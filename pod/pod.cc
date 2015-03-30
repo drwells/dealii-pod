@@ -158,14 +158,20 @@ namespace POD
   void BlockPODBasis::project_load_vector(BlockVector<double> &load_vector,
                                           BlockVector<double> &pod_load_vector) const
   {
-
+    (void)load_vector;
+    (void)pod_load_vector;
+    Assert(false, StandardExceptions::ExcNotImplemented());
   }
 
   void BlockPODBasis::project_to_fe(const BlockVector<double> &pod_vector,
                                     BlockVector<double> &fe_vector) const
   {
+    (void)pod_vector;
+    (void)fe_vector;
+    Assert(false, StandardExceptions::ExcNotImplemented());
 
   }
+
   void create_reduced_matrix(const std::vector<BlockVector<double>> &pod_vectors,
                              const SparseMatrix<double> &full_matrix,
                              FullMatrix<double> &rom_matrix)

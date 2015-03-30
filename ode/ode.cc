@@ -9,6 +9,8 @@ namespace ODE
 
   void EmptyOperator::apply(Vector<double> &dst, const Vector<double> &src)
   {
+    (void)dst;
+    (void)src;
     Assert(false, StandardExceptions::ExcNotInitialized());
   }
 
