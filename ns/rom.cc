@@ -29,7 +29,7 @@
 #include <deal.II/lac/block_vector.h>
 #include <deal.II/lac/vector.h>
 #include <deal.II/lac/full_matrix.h>
-#include <deal.II/lac/compressed_sparsity_pattern.h>
+#include <deal.II/lac/dynamic_sparsity_pattern.h>
 #include <deal.II/lac/sparse_matrix.h>
 
 #include <deal.II/numerics/matrix_tools.h>
@@ -129,9 +129,11 @@ namespace NavierStokes
     n_dofs = pod_vectors->at(0).block(0).size();
     n_pod_dofs = pod_vectors->size();
 
-    CompressedSparsityPattern c_sparsity(dof_handler->n_dofs());
-    DoFTools::make_sparsity_pattern(*dof_handler, c_sparsity);
-    sparsity_pattern.copy_from(c_sparsity);
+    {
+      DynamicSparsityPattern d_sparsity(dof_handler->n_dofs());
+      DoFTools::make_sparsity_pattern(*dof_handler, d_sparsity);
+      sparsity_pattern.copy_from(d_sparsity);
+    }
     // This is an abuse of notation to save duplication: if the POD vectors are
     // not filtered, then simply assign the filtered pod vectors pointer to
     // point to the unfiltered ones.
