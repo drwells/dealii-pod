@@ -150,6 +150,34 @@ namespace H5
 
   // TODO it should be possible to parameterize this by type.
   template<typename T>
+  void load_full_matrix(std::string file_name, T &matrix)
+  // load a deal.II full matrix.
+  {
+    hid_t file_id = H5Fopen(file_name.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
+
+    std::string dataset_name = "/a";
+    hid_t dataset = H5Dopen1(file_id, dataset_name.c_str());
+    hid_t datatype = H5Dget_type(dataset);
+    hid_t dataspace = H5Dget_space(dataset);
+    int rank = H5Sget_simple_extent_ndims(dataspace);
+    Assert(rank == 2, dealii::ExcInternalError());
+
+    std::vector<hsize_t> dims(rank);
+    std::vector<hsize_t> max_dims(rank);
+    H5Sget_simple_extent_dims(dataspace, dims.data(), max_dims.data());
+    hsize_t bufsize = H5Dget_storage_size(dataset);
+    matrix.reinit(dims[0], dims[1]);
+    H5Dread(dataset, datatype, H5S_ALL, H5S_ALL, H5P_DEFAULT,
+            static_cast<void *>(&(matrix(0, 0))));
+
+    H5Sclose(dataspace);
+    H5Tclose(datatype);
+    H5Dclose(dataset);
+    H5Fclose(file_id);
+  }
+
+  // TODO it should be possible to parameterize this by type.
+  template<typename T>
   void save_full_matrix(std::string file_name, T &matrix)
   // Save a deal.II full matrix.
   {
