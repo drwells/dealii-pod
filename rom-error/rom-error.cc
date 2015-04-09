@@ -1,7 +1,21 @@
+#include <deal.II/base/quadrature_lib.h>
+
+#include <deal.II/dofs/dof_tools.h>
+
+#include <deal.II/fe/fe_q.h>
+
 #include <deal.II/lac/block_vector.h>
+#include <deal.II/lac/compressed_sparsity_pattern.h>
+#include <deal.II/lac/full_matrix.h>
+#include <deal.II/lac/sparse_matrix.h>
+
+#include <deal.II/numerics/matrix_tools.h>
+
+#include <deal.II/bundled/boost/math/special_functions/round.hpp>
 
 #include <iostream>
 #include <string>
+#include <vector>
 
 #include "parameters.h"
 
@@ -10,22 +24,82 @@
 #include "../h5/h5.h"
 
 using namespace dealii;
-{
 
-Parameters::Parameters()
-  {
-    snapshot_file_names = "snapshot-*h5";
-  }
-
+constexpr unsigned int dim {3};
+constexpr double timestep_tolerance {1e-10};
 int main()
 {
   Parameters parameters;
-  auto snapshot_file_names = extra::expand_file_names(parameters.snapshot_file_names);
-  std::cout << "number of snapshots: " << snapshot_file_names.size() << std::endl;
+  auto snapshot_file_names = extra::expand_file_names(parameters.snapshot_glob);
 
-  BlockVector<double> block_vector;
-  for (auto &snapshot_file_name : snapshot_file_names)
+  FullMatrix<double> pod_coefficients;
+  H5::load_full_matrix(parameters.pod_coefficients_file_name, pod_coefficients);
+  const double rom_time_step {(parameters.rom_stop_time - parameters.rom_start_time)
+      /(pod_coefficients.m() - 1)};
+
+  std::vector<BlockVector<double>> pod_vectors;
+  BlockVector<double> mean_vector;
+  POD::load_pod_basis(parameters.pod_vector_glob, parameters.mean_vector_file_name,
+                      mean_vector, pod_vectors);
+
+  FE_Q<dim> fe(parameters.fe_order);
+  QGauss<dim> quad((3*fe.degree + 2)/2);
+  DoFHandler<dim> dof_handler;
+  Triangulation<dim> triangulation;
+  SparsityPattern sparsity_pattern;
+  POD::create_dof_handler_from_triangulation_file
+    ("triangulation.txt", parameters.renumber, fe, dof_handler, triangulation);
+
+  const unsigned int n_dofs = pod_vectors.at(0).block(0).size();
+  const unsigned int n_pod_dofs = pod_vectors.size();
+
+  {
+    CompressedSparsityPattern d_sparsity(dof_handler.n_dofs());
+    DoFTools::make_sparsity_pattern(dof_handler, d_sparsity);
+    sparsity_pattern.copy_from(d_sparsity);
+  }
+
+  SparseMatrix<double> mass_matrix(sparsity_pattern);
+  MatrixCreator::create_mass_matrix(dof_handler, quad, mass_matrix);
+
+  double error {0.0};
+  Vector<double> temp(mean_vector.block(0).size());
+  const double snapshot_time_step
+    {(parameters.snapshot_stop_time - parameters.snapshot_start_time)
+    /snapshot_file_names.size()};
+  double snapshot_current_time {parameters.snapshot_start_time};
+
+  BlockVector<double> solution_difference;
+  BlockVector<double> current_snapshot;
+  for (unsigned int snapshot_n = 0; snapshot_n < snapshot_file_names.size();
+       ++snapshot_n)
     {
-      H5::load_block_vector(snapshot_file_name, block_vector);
+      if (std::abs(snapshot_current_time - parameters.rom_start_time)
+          > timestep_tolerance or
+          std::abs(snapshot_current_time - parameters.rom_stop_time)
+          > timestep_tolerance)
+        {}
+      else
+        {
+          H5::load_block_vector(snapshot_file_names.at(snapshot_n), current_snapshot);
+
+          solution_difference = mean_vector;
+          int rom_row_index = boost::math::iround
+            ((snapshot_current_time - parameters.rom_start_time)/rom_time_step);
+
+          for (unsigned int pod_vector_n = 0; pod_vector_n < pod_vectors.size();
+               ++pod_vector_n)
+            {
+              solution_difference.add(pod_coefficients(rom_row_index, pod_vector_n),
+                                      pod_vectors.at(pod_vector_n));
+            }
+          solution_difference -= current_snapshot;
+
+          for (unsigned int dim_n = 0; dim_n < dim; ++dim_n)
+            {
+              mass_matrix.vmult(temp, solution_difference.block(dim_n));
+              error += std::sqrt(temp * solution_difference.block(dim_n));
+            }
+        }
     }
 }
