@@ -10,12 +10,7 @@
 #include "../h5/h5.h"
 
 using namespace dealii;
-class Parameters
 {
-public:
-  std::string snapshot_file_names;
-  Parameters();
-};
 
 Parameters::Parameters()
   {
