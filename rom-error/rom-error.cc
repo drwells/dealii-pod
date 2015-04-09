@@ -13,6 +13,7 @@
 
 #include <deal.II/bundled/boost/math/special_functions/round.hpp>
 
+#include <cmath>
 #include <iostream>
 #include <string>
 #include <vector>
@@ -25,8 +26,8 @@
 
 using namespace dealii;
 
-constexpr unsigned int dim {3};
-constexpr double timestep_tolerance {1e-10};
+constexpr unsigned int dim {2};
+constexpr double timestep_tolerance {1e-8};
 int main()
 {
   Parameters parameters;
@@ -44,8 +45,8 @@ int main()
 
   FE_Q<dim> fe(parameters.fe_order);
   QGauss<dim> quad((3*fe.degree + 2)/2);
-  DoFHandler<dim> dof_handler;
   Triangulation<dim> triangulation;
+  DoFHandler<dim> dof_handler;
   SparsityPattern sparsity_pattern;
   POD::create_dof_handler_from_triangulation_file
     ("triangulation.txt", parameters.renumber, fe, dof_handler, triangulation);
@@ -66,7 +67,7 @@ int main()
   Vector<double> temp(mean_vector.block(0).size());
   const double snapshot_time_step
     {(parameters.snapshot_stop_time - parameters.snapshot_start_time)
-    /snapshot_file_names.size()};
+    /(snapshot_file_names.size() - 1)};
   double snapshot_current_time {parameters.snapshot_start_time};
 
   BlockVector<double> solution_difference;
@@ -74,11 +75,10 @@ int main()
   for (unsigned int snapshot_n = 0; snapshot_n < snapshot_file_names.size();
        ++snapshot_n)
     {
-      if (std::abs(snapshot_current_time - parameters.rom_start_time)
-          > timestep_tolerance or
-          std::abs(snapshot_current_time - parameters.rom_stop_time)
-          > timestep_tolerance)
-        {}
+      if (snapshot_current_time > parameters.rom_stop_time
+          or snapshot_current_time < parameters.rom_start_time)
+        {
+        }
       else
         {
           H5::load_block_vector(snapshot_file_names.at(snapshot_n), current_snapshot);
@@ -86,7 +86,33 @@ int main()
           solution_difference = mean_vector;
           int rom_row_index = boost::math::iround
             ((snapshot_current_time - parameters.rom_start_time)/rom_time_step);
+          if (rom_row_index < 0)
+            {
+              std::cerr << "The ROM row index must be positive." << std::endl;
+            }
+          Assert(rom_row_index >= 0, ExcInternalError());
+#ifdef DEBUG
+          double rom_row_index_d = (snapshot_current_time - parameters.rom_start_time)
+            /rom_time_step;
+          if (std::abs(boost::math::iround(rom_row_index_d) - rom_row_index_d)
+              > timestep_tolerance)
+            {
+              std::cerr << "current time: " << std::setprecision(51)
+                        << snapshot_current_time
+                        << std::endl;
+              std::cerr << "The ROM row index ("
+                        << rom_row_index_d
+                        << ") must be integral." << std::endl;
+              Assert(false, ExcInternalError());
+            }
+#endif
 
+          std::cout << "C("
+                    << rom_row_index
+                    << ", "
+                    << "0) = "
+                    << pod_coefficients(rom_row_index, 0)
+                    << std::endl;
           for (unsigned int pod_vector_n = 0; pod_vector_n < pod_vectors.size();
                ++pod_vector_n)
             {
@@ -95,11 +121,15 @@ int main()
             }
           solution_difference -= current_snapshot;
 
+          double current_error {0.0};
           for (unsigned int dim_n = 0; dim_n < dim; ++dim_n)
             {
               mass_matrix.vmult(temp, solution_difference.block(dim_n));
-              error += std::sqrt(temp * solution_difference.block(dim_n));
+              current_error += temp * solution_difference.block(dim_n);
             }
+          error += std::sqrt(current_error);
         }
+      snapshot_current_time += snapshot_time_step;
     }
+  std::cout << "error is " << std::setprecision(20) << error << std::endl;
 }
