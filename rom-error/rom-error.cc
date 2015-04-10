@@ -127,9 +127,11 @@ int main()
               mass_matrix.vmult(temp, solution_difference.block(dim_n));
               current_error += temp * solution_difference.block(dim_n);
             }
+          std::cout << std::setprecision(20)
+                    << std::sqrt(current_error)
+                    << std::endl;
           error += std::sqrt(current_error);
         }
       snapshot_current_time += snapshot_time_step;
     }
-  std::cout << "error is " << std::setprecision(20) << error << std::endl;
 }
