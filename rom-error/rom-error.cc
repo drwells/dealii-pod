@@ -91,7 +91,6 @@ int main()
               std::cerr << "The ROM row index must be positive." << std::endl;
             }
           Assert(rom_row_index >= 0, ExcInternalError());
-#ifdef DEBUG
           double rom_row_index_d = (snapshot_current_time - parameters.rom_start_time)
             /rom_time_step;
           if (std::abs(boost::math::iround(rom_row_index_d) - rom_row_index_d)
@@ -103,9 +102,8 @@ int main()
               std::cerr << "The ROM row index ("
                         << rom_row_index_d
                         << ") must be integral." << std::endl;
-              Assert(false, ExcInternalError());
+              std::exit(EXIT_FAILURE);
             }
-#endif
 
           std::cout << "C("
                     << rom_row_index
