@@ -16,7 +16,6 @@ namespace POD
     class Parameters
     {
     public:
-      Parameters();
       int outflow_label;
       double reynolds_n;
       bool renumber;
@@ -37,9 +36,9 @@ namespace POD
       int output_interval;
       bool save_plot_pictures;
 
-      void read_data(std::string file_name);
-    protected:
-      ParameterHandler parameter_handler;
+      void read_data(const std::string &file_name);
+    private:
+      void configure_parameter_handler(ParameterHandler &parameter_handler) const;
     };
   }
 }
