@@ -81,9 +81,7 @@ namespace POD
   template<int dim>
   void PODVectors<dim>::load_mesh()
   {
-    std::filebuf file_buffer;
-    file_buffer.open(parameters.triangulation_file_name, std::ios::in);
-    std::istream in_stream(&file_buffer);
+    std::ifstream in_stream(parameters.triangulation_file_name);
     boost::archive::text_iarchive archive(in_stream);
     archive >> triangulation;
 
