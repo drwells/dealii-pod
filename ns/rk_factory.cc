@@ -91,6 +91,29 @@ namespace POD
             (new ODE::RungeKutta4PostFilter
              (std::move(plain_rhs_function), std::move(filter_function)));
         }
+      else if (parameters.filter_model == POD::FilterModel::ADLavrentiev)
+        {
+          if (!parameters.filter_mean)
+            {
+              StandardExceptions::ExcNotImplemented();
+            }
+          outname << "pod-ad-lavrentiev-" << parameters.lavrentiev_parameter
+                  << "-noise-multiplier-" << parameters.noise_multiplier;
+
+          std::unique_ptr<POD::NavierStokes::AD::FilterBase> ad_filter
+            (new POD::NavierStokes::AD::LavrentievFilter
+             (mass_matrix, laplace_matrix, boundary_matrix,
+              parameters.filter_radius, parameters.noise_multiplier,
+              parameters.lavrentiev_parameter));
+          std::unique_ptr<POD::NavierStokes::AD::FilterRHS> rhs_function
+            (new POD::NavierStokes::AD::FilterRHS
+             (mass_matrix, boundary_matrix, laplace_matrix, joint_convection,
+              nonlinear_operator, mean_contribution_vector,
+              parameters.reynolds_n, parameters.noise_multiplier,
+              std::move(ad_filter)));
+          rk_method = std::unique_ptr<ODE::RungeKutta4>
+            (new ODE::RungeKutta4(std::move(rhs_function)));
+        }
       else
         {
           StandardExceptions::ExcNotImplemented();

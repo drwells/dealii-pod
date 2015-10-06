@@ -59,6 +59,171 @@ namespace POD
     }
 
 
+    namespace AD
+    {
+      FilterBase::FilterBase
+      (const FullMatrix<double> mass_matrix,
+       const FullMatrix<double> laplace_matrix,
+       const FullMatrix<double> boundary_matrix,
+       const double filter_radius,
+       const double noise_multiplier) :
+        mass_matrix {mass_matrix},
+        laplace_matrix {laplace_matrix},
+        boundary_matrix {boundary_matrix},
+        filter_radius {filter_radius},
+        noise_multiplier {noise_multiplier},
+        distribution(0.0, 1.0)
+      {
+        filter_matrix = mass_matrix;
+        filter_matrix.add(filter_radius*filter_radius, laplace_matrix);
+        filter_matrix.add(-1.0*filter_radius*filter_radius, boundary_matrix);
+
+        factorized_mass_matrix.reinit(mass_matrix.m());
+        factorized_mass_matrix.copy_from(mass_matrix);
+        factorized_mass_matrix.compute_lu_factorization();
+
+        factorized_filter_matrix.reinit(mass_matrix.m());
+        factorized_filter_matrix.copy_from(filter_matrix);
+        factorized_filter_matrix.compute_lu_factorization();
+      }
+
+
+      LavrentievFilter::LavrentievFilter
+      (const FullMatrix<double> mass_matrix,
+       const FullMatrix<double> laplace_matrix,
+       const FullMatrix<double> boundary_matrix,
+       const double filter_radius,
+       const double noise_multiplier,
+       const double lavrentiev_parameter) :
+        FilterBase(mass_matrix, laplace_matrix, boundary_matrix, filter_radius,
+                   noise_multiplier),
+        lavrentiev_parameter {lavrentiev_parameter}
+      {}
+
+      /*
+       * Apply the filter G ((M + d^2 S)^-1) to the input vector src. src
+       * should be in the physical (not filtered) space.
+       */
+      void LavrentievFilter::apply
+      (Vector<double> &dst, const Vector<double> &src)
+      {
+        if (work0.size() == 0)
+          {
+            work0.reinit(src.size());
+          }
+
+        // TODO is there anything specific to Lavrentiev that should be done here?
+        dst = src;
+        factorized_filter_matrix.apply_lu_factorization(dst, false);
+      }
+
+
+      /*
+       * Solve the linear system
+       *
+       * (M + d^2 S) u^{AD-L} = (M + mu M + mu d^2 S) M (\bar{u} + noise)
+       *
+       * for u^{AD-L}. This approximately undoes the action of the filter.
+       */
+      void LavrentievFilter::apply_inverse
+      (Vector<double> &dst, const Vector<double> &src)
+      {
+        if (work0.size() == 0 || work1.size() == 0)
+          {
+            work0.reinit(src.size());
+            work1.reinit(src.size());
+          }
+        work0 = src;
+
+        for (unsigned int i = 0; i < work0.size(); ++i)
+          {
+            work0[i] += noise_multiplier * distribution(generator);
+          }
+
+        // M (\bar{u} + noise) == work1
+        mass_matrix.vmult(work1, work0);
+        mass_matrix.vmult(dst, work1);
+
+        filter_matrix.vmult(work0, work1);
+        work0 *= lavrentiev_parameter;
+        dst += work0;
+
+        factorized_filter_matrix.apply_lu_factorization(dst, false);
+      }
+
+      FilterRHS::FilterRHS
+      (const FullMatrix<double> mass_matrix,
+       const FullMatrix<double> boundary_matrix,
+       const FullMatrix<double> laplace_matrix,
+       const FullMatrix<double> joint_convection_matrix,
+       const std::vector<FullMatrix<double>> nonlinear_operator,
+       const Vector<double> mean_contribution,
+       const double reynolds_n,
+       const double noise_multiplier,
+       std::unique_ptr<FilterBase> ad_filter) :
+        mass_matrix {mass_matrix},
+        boundary_matrix {boundary_matrix},
+        laplace_matrix {laplace_matrix},
+        joint_convection_matrix {joint_convection_matrix},
+        nonlinear_operator {nonlinear_operator},
+        mean_contribution {mean_contribution},
+        reynolds_n {reynolds_n},
+        noise_multiplier {noise_multiplier},
+        filter {std::move(ad_filter)}
+      {
+        factorized_mass_matrix.reinit(mass_matrix.m());
+        factorized_mass_matrix = mass_matrix;
+        factorized_mass_matrix.compute_lu_factorization();
+      }
+
+
+      void FilterRHS::apply
+      (Vector<double> &dst, const Vector<double> &src)
+      {
+        if (work0.size() == 0 || work1.size() == 0 || work2.size() == 0)
+          {
+            work0.reinit(src.size());
+            work1.reinit(src.size());
+            work2.reinit(src.size());
+            approximately_deconvolved_solution.reinit(src.size());
+          }
+        // get an approximation of the unfiltered solution
+        filter->apply_inverse(approximately_deconvolved_solution, src);
+
+        // add the result of the filtered mean contribution
+        work0 = mean_contribution;
+        factorized_mass_matrix.apply_lu_factorization(work0, false);
+        filter->apply(dst, work0);
+
+        // add the result of the convection matrices
+        joint_convection_matrix.vmult(work0, approximately_deconvolved_solution);
+        factorized_mass_matrix.apply_lu_factorization(work0, false);
+        filter->apply(work1, work0);
+        dst += work1;
+
+        // and the nonlinearity
+        work1 = 0.0;
+        for (unsigned int pod_vector_n = 0; pod_vector_n < src.size(); ++pod_vector_n)
+          {
+            nonlinear_operator[pod_vector_n].vmult(work0, approximately_deconvolved_solution);
+            work1(pod_vector_n) -= work0 * approximately_deconvolved_solution;
+          }
+        factorized_mass_matrix.apply_lu_factorization(work1, false);
+        filter->apply(work0, work1);
+        dst += work0;
+
+        // add the result of the laplace matrix
+        laplace_matrix.vmult(work0, src);
+        dst.add(-1.0/reynolds_n, work0);
+
+        // and the boundary matrix
+        boundary_matrix.vmult(work0, src);
+        dst.add(1.0/reynolds_n, work0);
+
+        factorized_mass_matrix.apply_lu_factorization(dst, false);
+      }
+    }
+
     void PODDifferentialFilterRHS::apply
     (Vector<double> &dst, const Vector<double> &src)
     {

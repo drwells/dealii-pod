@@ -22,6 +22,8 @@ namespace POD
       int fe_order;
 
       POD::FilterModel filter_model;
+      double noise_multiplier;
+      double lavrentiev_parameter;
       double filter_radius;
       unsigned int cutoff_n;
       bool filter_mean;

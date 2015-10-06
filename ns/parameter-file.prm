@@ -7,11 +7,16 @@ end
 
 subsection Filtering Model Configuration
   # use 'Differential', 'L2Projection', 'PostDifferentialFilter',
-  # 'PostL2ProjectionFilter', or 'LerayHybrid'
-  set filter_model = Differential
-  # while both may be specified, only one will be used.
+  # 'PostL2ProjectionFilter', 'LerayHybrid', or 'ADLavrentiev'
+  set filter_model = ADLavrentiev
+  # while both may be specified, only one will be used for the Leray-like
+  # filters.
   set filter_radius = 0.0
   set cutoff_n = 11
+  # these parameters are only useful with the approximate deconvolution (i.e.,
+  # ADLavrentiev) models
+  set noise_multiplier = 0.0
+  set lavrentiev_parameter = 0.0
   # this value is only used with the Leray models, and is ignored in the
   # 'LerayHybrid' case (it only makes sense for it to be true in that context)
   set filter_mean = true

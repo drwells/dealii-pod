@@ -22,6 +22,7 @@
 #include <array>
 #include <iostream>
 #include <limits>
+#include <random>
 #include <vector>
 
 #include "../ode/ode.h"
@@ -66,6 +67,120 @@ namespace POD
       const FullMatrix<double> mass_matrix;
       LAPACKFullMatrix<double> factorized_filter_matrix;
     };
+
+
+    /*
+     * Rather than prefix everything with 'ApproximateDeconvolution', put it
+     * all in this namespace.
+     */
+    namespace AD
+    {
+      class FilterBase : public ODE::OperatorBase
+      {
+      public:
+        FilterBase
+        (const FullMatrix<double> mass_matrix,
+         const FullMatrix<double> laplace_matrix,
+         const FullMatrix<double> boundary_matrix,
+         const double filter_radius,
+         const double noise_multiplier);
+        virtual void apply_inverse(Vector<double> &dst, const Vector<double> &src) = 0;
+      protected:
+        const FullMatrix<double> mass_matrix;
+        const FullMatrix<double> laplace_matrix;
+        const FullMatrix<double> boundary_matrix;
+
+        const double filter_radius;
+        const double noise_multiplier;
+
+        /*
+         * In this terminology, the filter matrix is always (up to adding extra boundary terms)
+         *
+         * M + delta^2 S.
+         */
+        FullMatrix<double> filter_matrix;
+
+        /*
+         * For applying the inverse of the filter matrix (i.e., G).
+         */
+        LAPACKFullMatrix<double> factorized_filter_matrix;
+
+        /*
+         * For applying the inverse of the mass matrix (usually M = I and this
+         * is just the identity function).
+         */
+        LAPACKFullMatrix<double> factorized_mass_matrix;
+
+        std::mt19937 generator;
+        std::uniform_real_distribution<double> distribution;
+      };
+
+
+      class LavrentievFilter : public FilterBase
+      {
+      public:
+        LavrentievFilter
+        (const FullMatrix<double> mass_matrix,
+         const FullMatrix<double> laplace_matrix,
+         const FullMatrix<double> boundary_matrix,
+         const double filter_radius,
+         const double noise_multiplier,
+         const double lavrentiev_parameter);
+
+        virtual void apply(Vector<double> &dst, const Vector<double> &src) override;
+        virtual void apply_inverse(Vector<double> &dst, const Vector<double> &src) override;
+      private:
+        const double lavrentiev_parameter;
+        Vector<double> work0;
+        Vector<double> work1;
+      };
+
+
+      class TikhonovFilter : public FilterBase
+      {
+      public:
+        virtual void apply(Vector<double> &dst, const Vector<double> &src) override;
+        virtual void apply_inverse(Vector<double> &dst, const Vector<double> &src) override;
+      };
+
+
+      class FilterRHS : public ODE::OperatorBase
+      {
+      public:
+        FilterRHS
+        (const FullMatrix<double> mass_matrix,
+         const FullMatrix<double> boundary_matrix,
+         const FullMatrix<double> laplace_matrix,
+         const FullMatrix<double> joint_convection_matrix,
+         const std::vector<FullMatrix<double>> nonlinear_operator,
+         const Vector<double> mean_contribution,
+         const double reynolds_n,
+         const double noise_multiplier,
+         std::unique_ptr<FilterBase> ad_filter);
+
+        void apply(Vector<double> &dst, const Vector<double> &src) override;
+      protected:
+        void apply_filter(Vector<double> &dst, const Vector<double> &src);
+
+        const FullMatrix<double> mass_matrix;
+        const FullMatrix<double> boundary_matrix;
+        const FullMatrix<double> laplace_matrix;
+        const FullMatrix<double> joint_convection_matrix;
+        const std::vector<FullMatrix<double>> nonlinear_operator;
+        const Vector<double> mean_contribution;
+        const double reynolds_n;
+        const double noise_multiplier;
+
+        Vector<double> work0;
+        Vector<double> work1;
+        Vector<double> work2;
+        Vector<double> approximately_deconvolved_solution;
+
+        std::unique_ptr<FilterBase> filter;
+
+        LAPACKFullMatrix<double> factorized_mass_matrix;
+      };
+    }
 
 
     class L2ProjectionFilterRHS : public PlainRHS

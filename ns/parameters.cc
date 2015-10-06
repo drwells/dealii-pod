@@ -29,8 +29,14 @@ namespace POD
           ("filter_model", "Differential",
            Patterns::Selection
            ("L2Projection|Differential|PostL2ProjectionFilter|PostDifferentialFilter"
-            "|LerayHybrid"),
+            "|LerayHybrid|ADLavrentiev|ADTikhonov"),
            " Filtering strategy for the POD-ROM.");
+        parameter_handler.declare_entry
+          ("noise_multiplier", "0.0", Patterns::Double(0.0), "Multiplier on the "
+           "randomly generated noise vector for approximate deconvolution models.");
+        parameter_handler.declare_entry
+          ("lavrentiev_parameter", "0.0", Patterns::Double(0.0), "Multiplier for"
+           " the Lavrentiev regularization.");
         parameter_handler.declare_entry
           ("filter_radius", "0.0", Patterns::Double(0.0), " Filter radius for the "
            "differential or post filter.");
@@ -117,11 +123,21 @@ namespace POD
           {
             filter_model = POD::FilterModel::LerayHybrid;
           }
+        else if (filter_model_param == std::string("ADLavrentiev"))
+          {
+            filter_model = POD::FilterModel::ADLavrentiev;
+          }
+        else if (filter_model_param == std::string("ADTikonov"))
+          {
+            filter_model = POD::FilterModel::ADTikonov;
+          }
         else
           {
             StandardExceptions::ExcNotImplemented();
           }
 
+        noise_multiplier = parameter_handler.get_double("noise_multiplier");
+        lavrentiev_parameter = parameter_handler.get_double("lavrentiev_parameter");
         filter_radius = parameter_handler.get_double("filter_radius");
         cutoff_n = parameter_handler.get_integer("cutoff_n");
         filter_mean = parameter_handler.get_bool("filter_mean");
