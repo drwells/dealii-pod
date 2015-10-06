@@ -101,25 +101,24 @@ namespace POD
 
       parameter_handler.enter_subsection("Filtering Model Configuration");
       {
-        if (parameter_handler.get("filter_model") == std::string("Differential"))
+        auto filter_model_param = parameter_handler.get("filter_model");
+        if (filter_model_param == std::string("Differential"))
           {
             filter_model = POD::FilterModel::Differential;
           }
-        else if (parameter_handler.get("filter_model") == std::string("L2Projection"))
+        else if (filter_model_param == std::string("L2Projection"))
           {
             filter_model = POD::FilterModel::L2Projection;
           }
-        else if (parameter_handler.get("filter_model") ==
-                 std::string("PostDifferentialFilter"))
+        else if (filter_model_param == std::string("PostDifferentialFilter"))
           {
             filter_model = POD::FilterModel::PostDifferentialFilter;
           }
-        else if (parameter_handler.get("filter_model") ==
-                 std::string("PostL2ProjectionFilter"))
+        else if (filter_model_param == std::string("PostL2ProjectionFilter"))
           {
             filter_model = POD::FilterModel::PostL2ProjectionFilter;
           }
-        else if (parameter_handler.get("filter_model") == std::string("LerayHybrid"))
+        else if (filter_model_param == std::string("LerayHybrid"))
           {
             filter_model = POD::FilterModel::LerayHybrid;
           }
