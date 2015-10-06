@@ -109,8 +109,7 @@ namespace POD
             (new POD::NavierStokes::AD::FilterRHS
              (mass_matrix, boundary_matrix, laplace_matrix, joint_convection,
               nonlinear_operator, mean_contribution_vector,
-              parameters.reynolds_n, parameters.noise_multiplier,
-              std::move(ad_filter)));
+              parameters.reynolds_n, std::move(ad_filter)));
           rk_method = std::unique_ptr<ODE::RungeKutta4>
             (new ODE::RungeKutta4(std::move(rhs_function)));
         }

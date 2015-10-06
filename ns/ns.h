@@ -155,7 +155,6 @@ namespace POD
          const std::vector<FullMatrix<double>> nonlinear_operator,
          const Vector<double> mean_contribution,
          const double reynolds_n,
-         const double noise_multiplier,
          std::unique_ptr<FilterBase> ad_filter);
 
         void apply(Vector<double> &dst, const Vector<double> &src) override;
@@ -169,7 +168,6 @@ namespace POD
         const std::vector<FullMatrix<double>> nonlinear_operator;
         const Vector<double> mean_contribution;
         const double reynolds_n;
-        const double noise_multiplier;
 
         Vector<double> work0;
         Vector<double> work1;

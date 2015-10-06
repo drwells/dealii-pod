@@ -159,7 +159,6 @@ namespace POD
        const std::vector<FullMatrix<double>> nonlinear_operator,
        const Vector<double> mean_contribution,
        const double reynolds_n,
-       const double noise_multiplier,
        std::unique_ptr<FilterBase> ad_filter) :
         mass_matrix {mass_matrix},
         boundary_matrix {boundary_matrix},
@@ -168,7 +167,6 @@ namespace POD
         nonlinear_operator {nonlinear_operator},
         mean_contribution {mean_contribution},
         reynolds_n {reynolds_n},
-        noise_multiplier {noise_multiplier},
         filter {std::move(ad_filter)}
       {
         factorized_mass_matrix.reinit(mass_matrix.m());
