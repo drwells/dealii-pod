@@ -648,7 +648,7 @@ namespace POD
                ++face_n)
             {
               if (cell->face(face_n)->at_boundary()
-                  && cell->face(face_n)->boundary_indicator() == outflow_label)
+                  && cell->face(face_n)->boundary_id() == outflow_label)
                 {
                   fe_face_values.reinit(cell, face_n);
                   for (unsigned int i = 0; i < dofs_per_cell; ++i)
