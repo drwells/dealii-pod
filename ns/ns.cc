@@ -101,17 +101,12 @@ namespace POD
       {}
 
       /*
-       * Apply the filter G ((M + d^2 S)^-1) to the input vector src. src
+       * Apply the filter G = (M + d^2 S)^-1 to the input vector src. src
        * should be in the physical (not filtered) space.
        */
       void LavrentievFilter::apply
       (Vector<double> &dst, const Vector<double> &src)
       {
-        if (work0.size() == 0)
-          {
-            work0.reinit(src.size());
-          }
-
         // TODO is there anything specific to Lavrentiev that should be done here?
         dst = src;
         factorized_filter_matrix.apply_lu_factorization(dst, false);
