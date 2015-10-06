@@ -20,10 +20,6 @@
 #include <deal.II/numerics/data_out.h>
 
 #include <deal.II/bundled/boost/archive/text_iarchive.hpp>
-// These two are needed to get around issue 278; see
-// https://github.com/dealii/dealii/pull/278
-#include <deal.II/dofs/dof_faces.h>
-#include <deal.II/dofs/dof_levels.h>
 
 #include <algorithm>
 #include <cmath>
