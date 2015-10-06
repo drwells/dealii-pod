@@ -121,7 +121,7 @@ namespace POD
         pod_basis.vectors.at(eigenvector_n) = std::move(pod_vector);
       }
 
-    for (unsigned int pod_vector_n = 0; pod_vector_n < n_pod_vectors; ++pod_vector_n)
+    for (unsigned int pod_vector_n = 0; pod_vector_n < n_actual_pod_vectors; ++pod_vector_n)
       {
         auto &singular_value = pod_basis.singular_values.at(pod_vector_n);
         if (!std::isnan(singular_value))
