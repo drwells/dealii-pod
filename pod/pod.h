@@ -204,9 +204,7 @@ namespace POD
    DoFHandler<dim> &dof_handler,
    Triangulation<dim> &triangulation)
   {
-    std::filebuf file_buffer;
-    file_buffer.open(file_name, std::ios::in);
-    std::istream in_stream (&file_buffer);
+    std::ifstream in_stream (file_name);
     boost::archive::text_iarchive archive(in_stream);
     archive >> triangulation;
     dof_handler.initialize(triangulation, fe);
