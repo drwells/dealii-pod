@@ -98,6 +98,7 @@ namespace POD
               StandardExceptions::ExcNotImplemented();
             }
           outname << "pod-ad-lavrentiev-" << parameters.lavrentiev_parameter
+                  << "-filter-radius-" << parameters.filter_radius
                   << "-noise-multiplier-" << parameters.noise_multiplier;
 
           std::unique_ptr<POD::NavierStokes::AD::FilterBase> ad_filter
