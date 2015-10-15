@@ -29,7 +29,7 @@ int main(int argc, char **argv)
 
         POD::NavierStokes::Parameters parameters;
         parameters.read_data("parameter-file.prm");
-        ROM<2> nse_solver(parameters);
+        ROM<3> nse_solver(parameters);
         nse_solver.run();
       }
     }

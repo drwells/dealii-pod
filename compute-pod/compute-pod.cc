@@ -234,7 +234,7 @@ int main(int argc, char **argv)
   {
     Parameters parameters;
     parameters.read_data("parameter-file.prm");
-    PODVectors<3> pod_vectors(parameters);
+    PODVectors<2> pod_vectors(parameters);
     pod_vectors.run();
   }
 }
