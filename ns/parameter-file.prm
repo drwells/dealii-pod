@@ -1,5 +1,5 @@
 subsection DNS Information
-  set reynolds_n = 50.0
+  set reynolds_n = 100.0
   set outflow_label = 3
   set fe_order = 2
   set renumber = false
@@ -24,13 +24,13 @@ end
 
 subsection ROM Configuration
   set initial_time = 30.0
-  set final_time = 500.0
+  set final_time = 2000
   set time_step = 1.0e-4
 end
 
 subsection Output Configuration
   set patch_refinement = 2
-  set output_interval = 10
+  set output_interval = 100
   set save_plot_pictures = false
   set output_plot_time_start = 30.0
   set output_plot_time_stop = 2000.0
