@@ -175,6 +175,7 @@ namespace POD
                              DataOut<dim>::type_dof_data,
                              component_interpretation);
     data_out.build_patches(2); // TODO unhardcode the patch level
+
     std::string solution_file_name = filename_base
       + extra::int_to_string(timestep_number, 10)
       + ".h5";
