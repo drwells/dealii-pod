@@ -327,8 +327,8 @@ namespace NavierStokes
               }
             ++output_n;
             if (parameters.save_plot_pictures
-                and time >= parameters.output_time_start
-                and time <= parameters.output_time_stop)
+                and time >= parameters.output_plot_time_start
+                and time <= parameters.output_plot_time_stop)
               {
                 pod_output.save_solution(solution, time, timestep_number);
               }
