@@ -296,6 +296,7 @@ namespace NavierStokes
   void ROM<dim>::time_iterate()
   {
     Vector<double> old_solution(solution);
+    Vector<double> output_solution(solution);
 
     std::string outname;
     std::unique_ptr<ODE::RungeKuttaBase> rk_method {new ODE::RungeKutta4()};
@@ -303,6 +304,19 @@ namespace NavierStokes
       (boundary_matrix, joint_convection, laplace_matrix,
        linear_operator, mean_contribution_vector, mass_matrix,
        nonlinear_operator, parameters);
+
+    // Annoyingly, there is no way to access the filter burried inside
+    // rk_method at this point, so we must build another filter regardless of
+    // which filter model we actually use.
+    POD::NavierStokes::AD::LavrentievFilter ad_filter
+      (mass_matrix, laplace_matrix, boundary_matrix, parameters.filter_radius,
+       parameters.noise_multiplier, parameters.lavrentiev_parameter);
+
+    // Filter the initial condition, if appropriate
+    if (parameters.filter_model == POD::FilterModel::ADLavrentiev)
+      {
+        ad_filter.apply(old_solution, solution);
+      }
 
     int n_save_steps = boost::math::iround
       ((parameters.final_time - parameters.initial_time)/parameters.time_step)
@@ -321,16 +335,26 @@ namespace NavierStokes
 
         if (timestep_number % parameters.output_interval == 0)
           {
+            if (parameters.filter_model == POD::FilterModel::ADLavrentiev)
+              {
+                ad_filter.apply_inverse(output_solution, solution);
+              }
+            else
+              {
+                output_solution = solution;
+              }
+
             for (unsigned int i = 0; i < n_pod_dofs; ++i)
               {
-                solutions(output_n, i) = solution(i);
+                solutions(output_n, i) = output_solution(i);
               }
             ++output_n;
+
             if (parameters.save_plot_pictures
                 and time >= parameters.output_plot_time_start
                 and time <= parameters.output_plot_time_stop)
               {
-                pod_output.save_solution(solution, time, timestep_number);
+                pod_output.save_solution(output_solution, time, timestep_number);
               }
           }
         ++timestep_number;
