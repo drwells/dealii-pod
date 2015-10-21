@@ -1,0 +1,10 @@
+subsection DNS
+  set fe_order = 2
+  set renumber = false
+  set triangulation_file_name = triangulation.txt
+  set reynolds_n = 100
+end
+
+subsection ROM
+  set center_trajectory = true
+end

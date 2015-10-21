@@ -198,5 +198,117 @@ namespace H5
     H5Sclose(dataspace_id);
     H5Fclose(file_id);
   }
+
+
+
+  template<typename T>
+  void load_vector(const std::string &file_name, const T &vector)
+  {
+    hid_t file_id = H5Fopen(file_name.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
+
+    std::string dataset_name = "/a";
+    hid_t dataset = H5Dopen1(file_id, dataset_name.c_str());
+    // TODO assert that this is double precision
+    hid_t datatype = H5Dget_type(dataset);
+    hid_t dataspace = H5Dget_space(dataset);
+    int rank = H5Sget_simple_extent_ndims(dataspace);
+    Assert(rank == 1, dealii::ExcInternalError());
+
+    // Since rank must be 1...
+    hsize_t dims[1];
+    hsize_t max_dims[1];
+    H5Sget_simple_extent_dims(dataspace, dims, max_dims);
+    hsize_t bufsize = H5Dget_storage_size(dataset);
+    vector.reinit(dims[0]);
+    H5Dread(dataset, datatype, H5S_ALL, H5S_ALL, H5P_DEFAULT,
+            static_cast<void *>(&(vector[0])));
+
+    H5Sclose(dataspace);
+    H5Tclose(datatype);
+    H5Dclose(dataset);
+    H5Fclose(file_id);
+  }
+
+
+
+  template<typename T>
+  void save_vector(const std::string &file_name, T &vector)
+  {
+    hid_t file_id = H5Fcreate(file_name.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT,
+                              H5P_DEFAULT);
+
+    hsize_t n_dofs[1];
+    n_dofs[0] = vector.size();
+    hid_t dataspace_id = H5Screate_simple(1, n_dofs, nullptr);
+    std::string dataset_name {"/a"};
+    hid_t dataset_id = H5Dcreate2 (file_id, dataset_name.c_str(),
+                                   H5T_NATIVE_DOUBLE, dataspace_id,
+                                   H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT,
+             &(vector[0]));
+    H5Dclose(dataset_id);
+    H5Sclose(dataspace_id);
+  }
+
+
+
+  template<typename T>
+  void load_full_matrices(const std::string &file_name,
+                          std::vector<T> &matrices)
+  {
+    hid_t file_id = H5Fopen(file_name.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
+
+    hsize_t n_obj;
+    H5Gget_num_objs(file_id, &n_obj);
+    matrices.resize(n_obj);
+
+    for (unsigned int i = 0; i < n_obj; ++i)
+      {
+        std::string dataset_name = "/a" + dealii::Utilities::int_to_string(i);
+        hid_t dataset = H5Dopen1(file_id, dataset_name.c_str());
+        hid_t datatype = H5Dget_type(dataset);
+        hid_t dataspace = H5Dget_space(dataset);
+        int rank = H5Sget_simple_extent_ndims(dataspace);
+        Assert(rank == 2, dealii::ExcInternalError());
+
+        hsize_t dims[2];
+        hsize_t max_dims[2];
+        H5Sget_simple_extent_dims(dataspace, dims, max_dims);
+        matrices.at(i).reinit(dims[0], dims[1]);
+        H5Dread(dataset, datatype, H5S_ALL, H5S_ALL, H5P_DEFAULT,
+                static_cast<void *>(&(matrices.at(i)(0, 0))));
+        H5Sclose(dataspace);
+        H5Tclose(datatype);
+        H5Dclose(dataset);
+      }
+
+    H5Fclose(file_id);
+  }
+
+
+
+  template<typename T>
+  void save_full_matrices(const std::string &file_name,
+                          const std::vector<T> &matrices)
+  {
+    hid_t file_id = H5Fcreate(file_name.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT,
+                              H5P_DEFAULT);
+    for (unsigned int i = 0; i < matrices.size(); ++i)
+      {
+        hsize_t dims[2];
+        dims[0] = matrices[i].m();
+        dims[1] = matrices[i].n();
+        hid_t dataspace_id = H5Screate_simple(2, dims, nullptr);
+        std::string dataset_name = "/a" + dealii::Utilities::int_to_string(i);
+        hid_t dataset_id = H5Dcreate2(file_id, dataset_name.c_str(),
+                                      H5T_NATIVE_DOUBLE, dataspace_id,
+                                      H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+        H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT,
+                 &(matrices[i](0, 0)));
+        H5Dclose(dataset_id);
+        H5Sclose(dataspace_id);
+      }
+    H5Fclose(file_id);
+  }
 }
 #endif
