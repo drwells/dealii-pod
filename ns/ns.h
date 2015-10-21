@@ -1,6 +1,6 @@
 #ifndef __deal2_ns_pod_h
 #define __deal2_ns_pod_h
-#include <deal.II/base/quadrature_lib.h>
+#include <deal.II/base/quadrature.h>
 
 #include <deal.II/dofs/dof_handler.h>
 
@@ -234,7 +234,7 @@ namespace POD
 
     template<int dim>
     double trilinearity_term(
-      const QGauss<dim>         &quad,
+      const Quadrature<dim>     &quad,
       const DoFHandler<dim>     &dof_handler,
       const BlockVector<double> &pod_vector_0,
       const BlockVector<double> &pod_vector_1,
@@ -311,7 +311,7 @@ namespace POD
     template<int dim>
     void create_gradient_linearization
     (const DoFHandler<dim>     &dof_handler,
-     const QGauss<dim>         &quad,
+     const Quadrature<dim>     &quad,
      const BlockVector<double> &solution,
      ArrayArray<dim> &gradient)
     {
@@ -377,7 +377,7 @@ namespace POD
 
     template<int dim>
     void create_advective_linearization(const DoFHandler<dim>     &dof_handler,
-                                        const QGauss<dim>         &quad,
+                                        const Quadrature<dim>     &quad,
                                         const BlockVector<double> &solution,
                                         SparseMatrix<double>      &advection)
     {
@@ -448,7 +448,7 @@ namespace POD
     void create_reduced_nonlinearity
     (const DoFHandler<dim>                  &dof_handler,
      const SparsityPattern                  &sparsity_pattern,
-     const QGauss<dim>                      &quad,
+     const Quadrature<dim>                  &quad,
      const std::vector<BlockVector<double>> &pod_vectors,
      std::vector<FullMatrix<double>>        &nonlinear_operator)
     {
@@ -461,7 +461,7 @@ namespace POD
     void create_reduced_nonlinearity
     (const DoFHandler<dim>                  &dof_handler,
      const SparsityPattern                  &sparsity_pattern,
-     const QGauss<dim>                      &quad,
+     const Quadrature<dim>                  &quad,
      const std::vector<BlockVector<double>> &pod_vectors,
      const std::vector<BlockVector<double>> &filtered_pod_vectors,
      std::vector<FullMatrix<double>>        &nonlinear_operator)
@@ -501,7 +501,7 @@ namespace POD
     void create_nonlinear_centered_contribution
     (const DoFHandler<dim>            &dof_handler,
      const SparsityPattern            &sparsity_pattern,
-     const QGauss<dim>                &quad,
+     const Quadrature<dim>            &quad,
      BlockVector<double>              &filtered_solution,
      BlockVector<double>              &solution,
      std::vector<BlockVector<double>> &pod_vectors,
@@ -532,7 +532,7 @@ namespace POD
     void create_reduced_advective_linearization
     (const DoFHandler<dim>                  &dof_handler,
      const SparsityPattern                  &sparsity_pattern,
-     const QGauss<dim>                      &quad,
+     const Quadrature<dim>                  &quad,
      const BlockVector<double>              &solution,
      const std::vector<BlockVector<double>> &pod_vectors,
      FullMatrix<double>                     &advection)
@@ -562,7 +562,7 @@ namespace POD
     void create_reduced_gradient_linearization
     (const DoFHandler<dim>                  &dof_handler,
      const SparsityPattern                  &sparsity_pattern,
-     const QGauss<dim>                      &quad,
+     const Quadrature<dim>                  &quad,
      const BlockVector<double>              &solution,
      const std::vector<BlockVector<double>> &pod_vectors,
      FullMatrix<double>                     &gradient)
@@ -577,7 +577,7 @@ namespace POD
     void create_reduced_gradient_linearization
     (const DoFHandler<dim>                  &dof_handler,
      const SparsityPattern                  &sparsity_pattern,
-     const QGauss<dim>                      &quad,
+     const Quadrature<dim>                  &quad,
      const BlockVector<double>              &solution,
      const std::vector<BlockVector<double>> &pod_vectors,
      const std::vector<BlockVector<double>> &filtered_pod_vectors,
@@ -622,7 +622,7 @@ namespace POD
 
     template<int dim>
     void create_boundary_matrix(const DoFHandler<dim> &dof_handler,
-                                const QGauss<dim - 1> &face_quad,
+                                const Quadrature<dim - 1> &face_quad,
                                 const unsigned int outflow_label,
                                 SparseMatrix<double> &boundary_matrix)
     {
