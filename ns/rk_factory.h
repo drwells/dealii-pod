@@ -1,5 +1,5 @@
-#ifndef __deal2_rom_rk_factory_h
-#define __deal2_rom_rk_factory_h
+#ifndef dealii__rom_rk_factory_h
+#define dealii__rom_rk_factory_h
 #include <deal.II/lac/full_matrix.h>
 #include <deal.II/lac/vector.h>
 

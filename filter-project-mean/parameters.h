@@ -1,5 +1,5 @@
-#ifndef __deal2_rom_compute_pod_parameters_h
-#define __deal2_rom_compute_pod_parameters_h
+#ifndef dealii__rom_compute_pod_parameters_h
+#define dealii__rom_compute_pod_parameters_h
 #include <deal.II/base/parameter_handler.h>
 
 #include <fstream>

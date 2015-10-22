@@ -1,5 +1,5 @@
-#ifndef __deal2_ode_pod_h
-#define __deal2_ode_pod_h
+#ifndef dealii__rom_ode_pod_h
+#define dealii__rom_ode_pod_h
 #include <deal.II/lac/vector.h>
 
 #include <iostream>

@@ -17,8 +17,8 @@
  * Author: David Wells, Virginia Tech, 2014
  */
 
-#ifndef __deal2__h5_block_h
-#define __deal2__h5_block_h
+#ifndef dealii__rom_h5_block_h
+#define dealii__rom_h5_block_h
 
 #include <deal.II/base/utilities.h>
 #include <deal.II/lac/vector.h>

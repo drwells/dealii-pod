@@ -1,5 +1,5 @@
-#ifndef __deal2_leray_filter_h
-#define __deal2_leray_filter_h
+#ifndef dealii__rom_leray_filter_h
+#define dealii__rom_leray_filter_h
 
 #include <deal.II/lac/solver_gmres.h>
 #include <deal.II/lac/sparse_matrix.h>

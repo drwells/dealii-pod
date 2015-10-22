@@ -1,5 +1,5 @@
-#ifndef __deal2_ns_pod_h
-#define __deal2_ns_pod_h
+#ifndef dealii__rom_ns_pod_h
+#define dealii__rom_ns_pod_h
 #include <deal.II/base/quadrature.h>
 
 #include <deal.II/dofs/dof_handler.h>

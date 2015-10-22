@@ -1,5 +1,5 @@
-#ifndef __deal2__pod_h
-#define __deal2__pod_h
+#ifndef dealii__rom_pod_h
+#define dealii__rom_pod_h
 #include <deal.II/dofs/dof_handler.h>
 #include <deal.II/dofs/dof_renumbering.h>
 
