@@ -66,8 +66,8 @@ namespace NavierStokes
 
     POD::NavierStokes::Parameters    parameters;
 
-    std::unique_ptr<FE_Q<dim>>       fe;
-    std::unique_ptr<QGauss<dim>>     quad;
+    FE_Q<dim>                        fe;
+    QGauss<dim>                      quad;
     Triangulation<dim>               triangulation;
     SparsityPattern                  sparsity_pattern;
     std::shared_ptr<DoFHandler<dim>> dof_handler;
@@ -101,8 +101,8 @@ namespace NavierStokes
     :
     parameters (std::move(parameters)),
     // 2*N - 1 = 3*D -> N should be at least (3*D + 2)/2
-    fe {new FE_Q<dim>(parameters.fe_order)},
-    quad {new QGauss<dim>((3*fe->degree + 2)/2)},
+    fe(parameters.fe_order),
+    quad((3*fe.degree + 2)/2),
     dof_handler {new DoFHandler<dim>},
     pod_vectors {new std::vector<BlockVector<double>>},
     mean_vector {new BlockVector<double>},
@@ -120,7 +120,7 @@ namespace NavierStokes
     POD::load_pod_basis("pod-vector-*.h5", "mean-vector.h5", *mean_vector,
                         *pod_vectors);
     POD::create_dof_handler_from_triangulation_file
-    ("triangulation.txt", parameters.renumber, *fe, *dof_handler, triangulation);
+    ("triangulation.txt", parameters.renumber, fe, *dof_handler, triangulation);
 
     n_dofs = pod_vectors->at(0).block(0).size();
     n_pod_dofs = pod_vectors->size();
@@ -142,10 +142,10 @@ namespace NavierStokes
         full_mass_matrix->reinit(sparsity_pattern);
         SparseMatrix<double> full_laplace_matrix(sparsity_pattern);
         SparseMatrix<double> full_boundary_matrix(sparsity_pattern);
-        QGauss<dim - 1> face_quad(fe->degree + 3);
-        MatrixCreator::create_mass_matrix(*dof_handler, *quad, *full_mass_matrix);
+        QGauss<dim - 1> face_quad(fe.degree + 3);
+        MatrixCreator::create_mass_matrix(*dof_handler, quad, *full_mass_matrix);
         MatrixCreator::create_laplace_matrix
-        (*dof_handler, *quad, full_laplace_matrix);
+        (*dof_handler, quad, full_laplace_matrix);
         POD::NavierStokes::create_boundary_matrix
         (*dof_handler, face_quad, parameters.outflow_label, full_boundary_matrix);
 
@@ -195,7 +195,7 @@ namespace NavierStokes
 
     {
       SparseMatrix<double> full_mass_matrix(sparsity_pattern);
-      MatrixCreator::create_mass_matrix(*dof_handler, *quad, full_mass_matrix);
+      MatrixCreator::create_mass_matrix(*dof_handler, quad, full_mass_matrix);
       POD::create_reduced_matrix(*pod_vectors, full_mass_matrix, mass_matrix);
 
       BlockVector<double> centered_initial;
@@ -220,7 +220,7 @@ namespace NavierStokes
     {
       laplace_matrix.reinit(n_pod_dofs, n_pod_dofs);
       SparseMatrix<double> full_laplace_matrix(sparsity_pattern);
-      MatrixCreator::create_laplace_matrix(*dof_handler, *quad, full_laplace_matrix);
+      MatrixCreator::create_laplace_matrix(*dof_handler, quad, full_laplace_matrix);
       POD::create_reduced_matrix(*pod_vectors, full_laplace_matrix, laplace_matrix);
 
       mean_contribution_vector.reinit(n_pod_dofs);
@@ -239,7 +239,7 @@ namespace NavierStokes
 
     {
       SparseMatrix<double> full_boundary_matrix(sparsity_pattern);
-      QGauss<dim - 1> face_quad(fe->degree + 3);
+      QGauss<dim - 1> face_quad(fe.degree + 3);
       POD::NavierStokes::create_boundary_matrix
       (*dof_handler, face_quad, parameters.outflow_label, full_boundary_matrix);
 
@@ -259,16 +259,16 @@ namespace NavierStokes
     // Note that, without filtering, filtered_pod_vectors and pod_vectors point
     // to the same thing. Same with the mean vectors.
     POD::NavierStokes::create_reduced_advective_linearization
-    (*dof_handler, sparsity_pattern, *quad, *filtered_mean_vector, *pod_vectors,
+    (*dof_handler, sparsity_pattern, quad, *filtered_mean_vector, *pod_vectors,
      convection_matrix_0);
     POD::NavierStokes::create_reduced_gradient_linearization
-    (*dof_handler, sparsity_pattern, *quad, *mean_vector, *pod_vectors,
+    (*dof_handler, sparsity_pattern, quad, *mean_vector, *pod_vectors,
      *filtered_pod_vectors, convection_matrix_1);
     std::cout << "assembled the two convection matrices." << std::endl;
 
     Vector<double> nonlinear_contribution(n_pod_dofs);
     POD::NavierStokes::create_nonlinear_centered_contribution
-    (*dof_handler, sparsity_pattern, *quad, *filtered_mean_vector, *mean_vector,
+    (*dof_handler, sparsity_pattern, quad, *filtered_mean_vector, *mean_vector,
      *pod_vectors, nonlinear_contribution);
     mean_contribution_vector.add(-1.0, nonlinear_contribution);
 
@@ -286,7 +286,7 @@ namespace NavierStokes
     std::cout << "assembled all affine terms." << std::endl;
 
     POD::NavierStokes::create_reduced_nonlinearity
-    (*dof_handler, sparsity_pattern, *quad, *pod_vectors, *filtered_pod_vectors,
+    (*dof_handler, sparsity_pattern, quad, *pod_vectors, *filtered_pod_vectors,
      nonlinear_operator);
     std::cout << "assembled the nonlinearity." << std::endl;
   }
