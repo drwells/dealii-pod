@@ -1,7 +1,5 @@
 /* ---------------------------------------------------------------------
- * $Id: h5.h $
- *
- * Copyright (C) 2014 David Wells
+ * Copyright (C) 2014-2015 David Wells
  *
  * This file is NOT part of the deal.II library.
  *
@@ -14,9 +12,9 @@
  *
  * ---------------------------------------------------------------------
  *
- * Author: David Wells, Virginia Tech, 2014
+ * Author: David Wells, Virginia Tech, 2014-2015;
+ *         David Wells, Rensselaer Polytechnic Institute, 2015
  */
-
 #ifndef dealii__rom_h5_block_h
 #define dealii__rom_h5_block_h
 
