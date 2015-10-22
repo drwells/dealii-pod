@@ -12,6 +12,7 @@ namespace ComputePOD
   class Parameters
   {
   public:
+    int dimension;
     int fe_order;
     bool renumber;
     std::string triangulation_file_name;
@@ -19,6 +20,8 @@ namespace ComputePOD
     int outflow_label;
 
     bool center_trajectory;
+    bool use_leray_regularization;
+    double filter_radius;
 
     void read_data(const std::string &file_name);
   private:

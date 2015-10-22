@@ -10,6 +10,10 @@ SET(TARGET_SRC
   ../h5/h5.h
   parameters.cc
   parameters.h
+  ../ns/filter.h
+  ../ns/filter.cc
+  ../ns/ns.h
+  ../ns/ns.cc
   )
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp -fmax-errors=3")
 

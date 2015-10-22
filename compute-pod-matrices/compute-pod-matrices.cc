@@ -1,35 +1,27 @@
 #include <deal.II/base/utilities.h>
 #include <deal.II/base/quadrature_lib.h>
 
-#include <deal.II/lac/full_matrix.h>
-#include <deal.II/lac/vector.h>
 #include <deal.II/lac/compressed_sparsity_pattern.h>
+#include <deal.II/lac/dynamic_sparsity_pattern.h>
+#include <deal.II/lac/full_matrix.h>
 #include <deal.II/lac/sparse_matrix.h>
+#include <deal.II/lac/vector.h>
 
 #include <deal.II/grid/tria.h>
 #include <deal.II/grid/grid_in.h>
 
 #include <deal.II/dofs/dof_handler.h>
-#include <deal.II/dofs/dof_renumbering.h>
 #include <deal.II/dofs/dof_tools.h>
 
 #include <deal.II/fe/fe_q.h>
-#include <deal.II/fe/fe_system.h>
 
 #include <deal.II/numerics/matrix_tools.h>
-#include <deal.II/numerics/data_out.h>
 
-#include <deal.II/bundled/boost/archive/text_iarchive.hpp>
-
-#include <algorithm>
-#include <cmath>
-#include <fstream>
-#include <iostream>
-#include <memory>
 #include <string>
-#include <sstream>
+#include <memory>
 #include <vector>
 
+#include "../ns/filter.h"
 #include "../ns/ns.h"
 #include "../extra/extra.h"
 #include "../pod/pod.h"
@@ -67,8 +59,12 @@ namespace ComputePOD
     SparsityPattern sparsity_pattern;
     DoFHandler<dim> dof_handler;
 
-    std::vector<BlockVector<double>> pod_vectors;
-    BlockVector<double> mean_vector;
+    // for Leray models: otherwise, these point to the unfiltered versions
+    std::shared_ptr<std::vector<BlockVector<double>>> filtered_pod_vectors;
+    std::shared_ptr<BlockVector<double>> filtered_mean_vector;
+
+    std::shared_ptr<std::vector<BlockVector<double>>> pod_vectors;
+    std::shared_ptr<BlockVector<double>> mean_vector;
     unsigned int n_dofs;
     unsigned int n_pod_dofs;
 
@@ -89,18 +85,17 @@ namespace ComputePOD
   ComputePODMatrices<dim>::ComputePODMatrices
   (const Parameters &params)
     :
-    parameters (params),
+    parameters(params),
     fe(params.fe_order),
     quad(params.fe_order + 2)
   {
     POD::create_dof_handler_from_triangulation_file
-    ("triangulation.txt", parameters.renumber, fe, dof_handler, triangulation);
+    (parameters.triangulation_file_name, parameters.renumber, fe, dof_handler,
+     triangulation);
 
-    {
-      DynamicSparsityPattern d_sparsity(dof_handler.n_dofs());
-      DoFTools::make_sparsity_pattern(dof_handler, d_sparsity);
-      sparsity_pattern.copy_from(d_sparsity);
-    }
+    DynamicSparsityPattern d_sparsity(dof_handler.n_dofs());
+    DoFTools::make_sparsity_pattern(dof_handler, d_sparsity);
+    sparsity_pattern.copy_from(d_sparsity);
   }
 
 
@@ -109,11 +104,52 @@ namespace ComputePOD
   void
   ComputePODMatrices<dim>::load_pod_vectors()
   {
-    POD::load_pod_basis("pod-vector*.h5", "mean-vector.h5", mean_vector, pod_vectors);
-    n_dofs = pod_vectors.at(0).block(0).size();
-    n_pod_dofs = pod_vectors.size();
+    // TODO replace hardcoded strings with parameter values
+    POD::load_pod_basis("pod-vector*.h5", "mean-vector.h5", *mean_vector,
+                        *pod_vectors);
+    n_dofs = pod_vectors->at(0).block(0).size();
+    n_pod_dofs = pod_vectors->size();
 
     mean_contribution.reinit(n_pod_dofs);
+
+    // This is an abuse of notation to save duplication: if the POD vectors are
+    // not filtered, then simply assign the filtered pod vectors pointer to
+    // point to the unfiltered ones.
+    if (parameters.use_leray_regularization
+        && parameters.filter_radius != 0.0)
+      {
+        std::shared_ptr<SparseMatrix<double>> full_mass_matrix
+          {new SparseMatrix<double>};
+        full_mass_matrix->reinit(sparsity_pattern);
+        SparseMatrix<double> full_laplace_matrix(sparsity_pattern);
+        SparseMatrix<double> full_boundary_matrix(sparsity_pattern);
+        QGauss<dim - 1> face_quad(fe.degree + 3);
+        MatrixCreator::create_mass_matrix(dof_handler, quad, *full_mass_matrix);
+        MatrixCreator::create_laplace_matrix
+          (dof_handler, quad, full_laplace_matrix);
+        POD::NavierStokes::create_boundary_matrix
+          (dof_handler, face_quad, parameters.outflow_label, full_boundary_matrix);
+
+        Leray::LerayFilter filter
+          (parameters.filter_radius, full_mass_matrix, full_boundary_matrix,
+           full_laplace_matrix);
+
+        // TODO support not filtering the mean
+        filter.apply(*filtered_mean_vector, *mean_vector);
+
+        filtered_pod_vectors->resize(n_pod_dofs);
+        for (unsigned int pod_vector_n = 0; pod_vector_n < n_pod_dofs;
+             ++pod_vector_n)
+          {
+            filter.apply(filtered_pod_vectors->at(pod_vector_n),
+                         pod_vectors->at(pod_vector_n));
+          }
+      }
+    else
+      {
+        filtered_pod_vectors = pod_vectors;
+        filtered_mean_vector = mean_vector;
+      }
   }
 
 
@@ -126,12 +162,13 @@ namespace ComputePOD
     // condition here too.
     SparseMatrix<double> full_mass_matrix(sparsity_pattern);
     MatrixCreator::create_mass_matrix(dof_handler, quad, full_mass_matrix);
-    POD::create_reduced_matrix(pod_vectors, full_mass_matrix, mass_matrix);
+    POD::create_reduced_matrix(*pod_vectors, full_mass_matrix, mass_matrix);
 
     BlockVector<double> centered_initial;
+    // TODO replace hardcoded string with a parameter value
     H5::load_block_vector("initial.h5", centered_initial);
     initial.reinit(n_pod_dofs);
-    centered_initial -= mean_vector;
+    centered_initial -= *mean_vector;
     for (unsigned int dim_n = 0; dim_n < dim; ++dim_n)
       {
         Vector<double> temp(n_dofs);
@@ -140,7 +177,7 @@ namespace ComputePOD
              ++pod_vector_n)
           {
             initial[pod_vector_n] +=
-              temp * pod_vectors.at(pod_vector_n).block(dim_n);
+              temp * pod_vectors->at(pod_vector_n).block(dim_n);
           }
       }
   }
@@ -155,16 +192,16 @@ namespace ComputePOD
     // the relevant part from the mean contribution.
     SparseMatrix<double> full_laplace_matrix(sparsity_pattern);
     MatrixCreator::create_laplace_matrix(dof_handler, quad, full_laplace_matrix);
-    POD::create_reduced_matrix(pod_vectors, full_laplace_matrix, laplace_matrix);
+    POD::create_reduced_matrix(*pod_vectors, full_laplace_matrix, laplace_matrix);
 
     for (unsigned int dim_n = 0; dim_n < dim; ++dim_n)
       {
         Vector<double> temp(n_dofs);
-        full_laplace_matrix.vmult(temp, mean_vector.block(dim_n));
+        full_laplace_matrix.vmult(temp, mean_vector->block(dim_n));
         for (unsigned int pod_vector_n = 0; pod_vector_n < n_pod_dofs; ++pod_vector_n)
           {
             mean_contribution(pod_vector_n) -= 1.0/parameters.reynolds_n*
-              (temp * pod_vectors.at(pod_vector_n).block(dim_n));
+              (temp * pod_vectors->at(pod_vector_n).block(dim_n));
           }
       }
   }
@@ -183,15 +220,15 @@ namespace ComputePOD
       (dof_handler, face_quad, parameters.outflow_label, full_boundary_matrix);
 
     std::vector<unsigned int> dims {0};
-    POD::create_reduced_matrix(pod_vectors, full_boundary_matrix, dims,
+    POD::create_reduced_matrix(*pod_vectors, full_boundary_matrix, dims,
                                boundary_matrix);
 
     Vector<double> temp(n_dofs);
-    full_boundary_matrix.vmult(temp, mean_vector.block(0));
+    full_boundary_matrix.vmult(temp, mean_vector->block(0));
     for (unsigned int pod_vector_n = 0; pod_vector_n < n_pod_dofs; ++pod_vector_n)
       {
         mean_contribution(pod_vector_n) += 1.0/parameters.reynolds_n
-          *(temp * pod_vectors.at(pod_vector_n).block(0));
+          *(temp * pod_vectors->at(pod_vector_n).block(0));
       }
   }
 
@@ -203,8 +240,8 @@ namespace ComputePOD
   {
     QGauss<dim> higher_quadrature(2*(parameters.fe_order + 1));
     POD::NavierStokes::create_reduced_advective_linearization
-    (dof_handler, sparsity_pattern, higher_quadrature, mean_vector, pod_vectors,
-     advection_matrix);
+    (dof_handler, sparsity_pattern, higher_quadrature, *filtered_mean_vector,
+     *pod_vectors, advection_matrix);
   }
 
 
@@ -215,8 +252,8 @@ namespace ComputePOD
   {
     QGauss<dim> higher_quadrature(2*(parameters.fe_order + 1));
     POD::NavierStokes::create_reduced_gradient_linearization
-    (dof_handler, sparsity_pattern, higher_quadrature, mean_vector, pod_vectors,
-     pod_vectors, gradient_matrix);
+    (dof_handler, sparsity_pattern, higher_quadrature, *mean_vector, *pod_vectors,
+     *filtered_pod_vectors, gradient_matrix);
   }
 
 
@@ -229,13 +266,13 @@ namespace ComputePOD
 
     Vector<double> nonlinear_contribution(n_pod_dofs);
     POD::NavierStokes::create_nonlinear_centered_contribution
-      (dof_handler, sparsity_pattern, higher_quadrature, mean_vector,
-       mean_vector, pod_vectors, nonlinear_contribution);
+      (dof_handler, sparsity_pattern, higher_quadrature, *mean_vector,
+       *mean_vector, *pod_vectors, nonlinear_contribution);
     mean_contribution.add(-1.0, nonlinear_contribution);
 
     POD::NavierStokes::create_reduced_nonlinearity
-    (dof_handler, sparsity_pattern, higher_quadrature, pod_vectors, pod_vectors,
-     nonlinearity);
+    (dof_handler, sparsity_pattern, higher_quadrature, *pod_vectors,
+     *filtered_pod_vectors, nonlinearity);
   }
 
 
@@ -245,19 +282,12 @@ namespace ComputePOD
   ComputePODMatrices<dim>::save_rom_components()
   {
     H5::save_full_matrix("rom-mass-matrix.h5", mass_matrix);
-    std::cout << "saved the mass matrix." << std::endl;
     H5::save_full_matrix("rom-laplace-matrix.h5", laplace_matrix);
-    std::cout << "saved the laplace matrix." << std::endl;
     H5::save_full_matrix("rom-boundary-matrix.h5", boundary_matrix);
-    std::cout << "saved the boundary matrix." << std::endl;
     H5::save_full_matrix("rom-gradient-matrix.h5", gradient_matrix);
-    std::cout << "saved the gradient matrix." << std::endl;
     H5::save_full_matrix("rom-advection-matrix.h5", advection_matrix);
-    std::cout << "saved the advection matrix." << std::endl;
     H5::save_vector("rom-mean-contribution.h5", mean_contribution);
-    std::cout << "saved the mean contribution." << std::endl;
     H5::save_full_matrices("rom-nonlinearity.h5", nonlinearity);
-    std::cout << "saved the nonlinearity." << std::endl;
   }
 
 
@@ -267,21 +297,13 @@ namespace ComputePOD
   ComputePODMatrices<dim>::run()
   {
     load_pod_vectors();
-    std::cout << "loaded the POD basis." << std::endl;
     setup_mass_matrix();
-    std::cout << "set up the mass matrix." << std::endl;
     setup_laplace_matrix();
-    std::cout << "set up the laplace matrix." << std::endl;
     setup_boundary_matrix();
-    std::cout << "set up the boundary matrix." << std::endl;
     setup_advective_linearization_matrix();
-    std::cout << "set up the advection matrix." << std::endl;
     setup_gradient_linearization_matrix();
-    std::cout << "set up the gradient matrix." << std::endl;
     setup_nonlinearity();
-    std::cout << "set up the nonlinearity matrices." << std::endl;
     save_rom_components();
-    std::cout << "saved everything to disk." << std::endl;
   }
 }
 
@@ -296,7 +318,15 @@ int main(int argc, char **argv)
   {
     ComputePOD::Parameters parameters;
     parameters.read_data("parameter-file.prm");
-    ComputePOD::ComputePODMatrices<3> pod_matrices(parameters);
-    pod_matrices.run();
+    if (parameters.dimension == 2)
+      {
+        ComputePOD::ComputePODMatrices<2> pod_matrices(parameters);
+        pod_matrices.run();
+      }
+    else
+      {
+        ComputePOD::ComputePODMatrices<3> pod_matrices(parameters);
+        pod_matrices.run();
+      }
   }
 }

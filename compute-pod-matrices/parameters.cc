@@ -8,6 +8,8 @@ namespace ComputePOD
     parameter_handler.enter_subsection("DNS");
     {
       parameter_handler.declare_entry
+        ("dimension", "3", Patterns::Integer(2), "Dimension of the data.");
+      parameter_handler.declare_entry
         ("fe_order", "2", Patterns::Integer(1), "Order of the finite element.");
       parameter_handler.declare_entry
         ("renumber", "false", Patterns::Bool(), "Whether or not to renumber "
@@ -27,6 +29,13 @@ namespace ComputePOD
       parameter_handler.declare_entry
         ("center_trajectory", "true", Patterns::Bool(), "Whether or not to center "
          "the trajectory.");
+      parameter_handler.declare_entry
+        ("use_leray_regularization", "false", Patterns::Bool(), "Whether or not "
+         "to assemble the nonlinearity with filtered POD vectors in the "
+         "advective term.");
+      parameter_handler.declare_entry
+        ("filter_radius", "0.0", Patterns::Double(), "Radius of the differential"
+         " filter.");
     }
     parameter_handler.leave_subsection();
   }
@@ -42,6 +51,7 @@ namespace ComputePOD
 
     parameter_handler.enter_subsection("DNS");
     {
+      dimension = parameter_handler.get_integer("dimension");
       fe_order = parameter_handler.get_integer("fe_order");
       renumber = parameter_handler.get_bool("renumber");
       triangulation_file_name = parameter_handler.get("triangulation_file_name");
@@ -53,6 +63,8 @@ namespace ComputePOD
     parameter_handler.enter_subsection("ROM");
     {
       center_trajectory = parameter_handler.get_bool("center_trajectory");
+      use_leray_regularization =
+        parameter_handler.get_bool("use_leray_regularization");
     }
     parameter_handler.leave_subsection();
   }
