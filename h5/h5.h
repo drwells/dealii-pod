@@ -34,59 +34,6 @@
 namespace H5
 {
   template<typename T>
-  void as_block_vector(std::vector<T> &data, unsigned int n_blocks,
-                       dealii::BlockVector<T> &block_vector)
-  {
-    unsigned int n_rows = data.size()/n_blocks;
-    Assert(data.size() % n_blocks == 0, dealii::ExcInternalError());
-    block_vector.reinit(n_blocks, data.size()/n_blocks);
-    block_vector.collect_sizes();
-
-    // HDF5 copies data in row-major order, so undo that here.
-    std::vector<dealii::Vector<double>*> blocks;
-    for (unsigned int j = 0; j < n_blocks; ++j)
-      {
-        dealii::Vector<double> *block = &block_vector.block(j);
-        blocks.push_back(block);
-      }
-
-    for (unsigned int i = 0; i < n_rows; ++i)
-      {
-        for (unsigned int j = 0; j < n_blocks; ++j)
-          {
-            (*blocks[j])[i] = data[i*n_blocks + j];
-          }
-      }
-  }
-
-  template<typename T>
-  void load_hdf5(std::string file_name, std::string dataset_name,
-                 dealii::BlockVector<T> &block_vector)
-  {
-    hid_t file_id = H5Fopen(file_name.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
-    hid_t dataset = H5Dopen1(file_id, dataset_name.c_str());
-    hid_t datatype = H5Dget_type(dataset);
-    hid_t dataspace = H5Dget_space(dataset);
-
-    int rank = H5Sget_simple_extent_ndims(dataspace);
-    std::vector<hsize_t> dims(rank);
-    std::vector<hsize_t> max_dims(rank);
-    H5Sget_simple_extent_dims(dataspace, dims.data(), max_dims.data());
-    unsigned int n_blocks = dims[rank - 1];
-
-    hsize_t bufsize = H5Dget_storage_size(dataset);
-    std::vector<double> data(bufsize/sizeof(T));
-    H5Dread(dataset, datatype, H5S_ALL, H5S_ALL, H5P_DEFAULT,
-            static_cast<void *>(data.data()));
-    as_block_vector(data, n_blocks, block_vector);
-
-    H5Sclose(dataspace);
-    H5Tclose(datatype);
-    H5Dclose(dataset);
-    H5Fclose(file_id);
-  }
-
-  template<typename T>
   void load_block_vector(std::string file_name,
                          dealii::BlockVector<T> &block_vector)
   {
