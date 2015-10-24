@@ -5,6 +5,8 @@ CMakeFiles/*
 *.cmake
 *\~
 *\#
+*xdmf
+
 Makefile
 *.o
 *h5
@@ -12,7 +14,12 @@ Makefile
 */*/*kdev4
 */CMakeFiles/*
 */*/CMakeFiles/*
+
 # binary files
-ns/rom
-project/project
-compute-pod/compute-pod
+programs/ns/rom
+programs/project/project
+programs/compute-pod/compute-pod
+programs/compute-pod-matrices/compute-pod-matrices
+*png
+
+*so
