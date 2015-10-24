@@ -19,12 +19,12 @@
 #define dealii__rom_ode_pod_h
 #include <deal.II/lac/vector.h>
 
-#include <iostream>
 #include <memory>
 
-using namespace dealii;
 namespace ODE
 {
+  using namespace dealii;
+
   class OperatorBase
   {
   public:

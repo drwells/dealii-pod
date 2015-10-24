@@ -15,25 +15,26 @@
  * Author: David Wells, Virginia Tech, 2014-2015;
  *         David Wells, Rensselaer Polytechnic Institute, 2015
  */
-#ifndef dealii__rom_h5_block_h
-#define dealii__rom_h5_block_h
+#ifndef dealii__rom_h5_templates_h
+#define dealii__rom_h5_templates_h
 
 #include <deal.II/base/utilities.h>
-#include <deal.II/lac/vector.h>
 #include <deal.II/lac/block_vector.h>
-#include <deal.II/lac/full_matrix.h>
 
-#include <fstream>
-#include <iostream>
+#include <deal.II-rom/h5/h5.h>
+
+#include <hdf5.h>
+
 #include <string>
 #include <vector>
-#include <hdf5.h>
 
 namespace H5
 {
+  using namespace dealii;
+
   template<typename T>
-  void load_block_vector(std::string file_name,
-                         dealii::BlockVector<T> &block_vector)
+  void load_block_vector(const std::string &file_name,
+                         BlockVector<T> &block_vector)
   {
     hid_t file_id = H5Fopen(file_name.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
 
@@ -45,12 +46,12 @@ namespace H5
 
     for (unsigned int i = 0; i < n_blocks; ++i)
       {
-        std::string dataset_name = "/a" + dealii::Utilities::int_to_string(i);
+        std::string dataset_name = "/a" + Utilities::int_to_string(i);
         hid_t dataset = H5Dopen1(file_id, dataset_name.c_str());
         hid_t datatype = H5Dget_type(dataset);
         hid_t dataspace = H5Dget_space(dataset);
         int rank = H5Sget_simple_extent_ndims(dataspace);
-        Assert(rank == 1, dealii::ExcInternalError());
+        Assert(rank == 1, StandardExceptions::ExcInternalError());
 
         std::vector<hsize_t> dims(rank);
         std::vector<hsize_t> max_dims(rank);
@@ -70,8 +71,8 @@ namespace H5
   // TODO it should be possible to parameterize this by type. However, I do not
   // see an easy way to go from BlockVector<double> to H5T_NATIVE_DOUBLE.
   template<typename T>
-  void save_block_vector(std::string file_name,
-                         dealii::BlockVector<T> &block_vector)
+  void save_block_vector(const std::string &file_name,
+                         BlockVector<T> &block_vector)
   // Save a deal.II block vector to an HDF5 file as components a0, a1, etc.
   {
     hid_t file_id = H5Fcreate(file_name.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT,
@@ -81,7 +82,7 @@ namespace H5
         hsize_t n_dofs[1];
         n_dofs[0] = block_vector.block(i).size();
         hid_t dataspace_id = H5Screate_simple(1, n_dofs, nullptr);
-        std::string dataset_name = "/a" + dealii::Utilities::int_to_string(i);
+        std::string dataset_name = "/a" + Utilities::int_to_string(i);
         hid_t dataset_id = H5Dcreate2 (file_id, dataset_name.c_str (),
                                        H5T_NATIVE_DOUBLE, dataspace_id,
                                        H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
@@ -95,7 +96,7 @@ namespace H5
 
   // TODO it should be possible to parameterize this by type.
   template<typename T>
-  void load_full_matrix(std::string file_name, T &matrix)
+  void load_full_matrix(const std::string &file_name, T &matrix)
   // load a deal.II full matrix.
   {
     hid_t file_id = H5Fopen(file_name.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
@@ -105,7 +106,7 @@ namespace H5
     hid_t datatype = H5Dget_type(dataset);
     hid_t dataspace = H5Dget_space(dataset);
     int rank = H5Sget_simple_extent_ndims(dataspace);
-    Assert(rank == 2, dealii::ExcInternalError());
+    Assert(rank == 2, StandardExceptions::ExcInternalError());
 
     std::vector<hsize_t> dims(rank);
     std::vector<hsize_t> max_dims(rank);
@@ -123,7 +124,7 @@ namespace H5
 
   // TODO it should be possible to parameterize this by type.
   template<typename T>
-  void save_full_matrix(std::string file_name, T &matrix)
+  void save_full_matrix(const std::string &file_name, T &matrix)
   // Save a deal.II full matrix.
   {
     hid_t file_id = H5Fcreate(file_name.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT,
@@ -147,7 +148,7 @@ namespace H5
 
 
   template<typename T>
-  void load_vector(const std::string &file_name, const T &vector)
+  void load_vector(const std::string &file_name, T &vector)
   {
     hid_t file_id = H5Fopen(file_name.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
 
@@ -157,7 +158,7 @@ namespace H5
     hid_t datatype = H5Dget_type(dataset);
     hid_t dataspace = H5Dget_space(dataset);
     int rank = H5Sget_simple_extent_ndims(dataspace);
-    Assert(rank == 1, dealii::ExcInternalError());
+    Assert(rank == 1, StandardExceptions::ExcInternalError());
 
     // Since rank must be 1...
     hsize_t dims[1];
@@ -177,7 +178,7 @@ namespace H5
 
 
   template<typename T>
-  void save_vector(const std::string &file_name, T &vector)
+  void save_vector(const std::string &file_name, const T &vector)
   {
     hid_t file_id = H5Fcreate(file_name.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT,
                               H5P_DEFAULT);
@@ -209,12 +210,12 @@ namespace H5
 
     for (unsigned int i = 0; i < n_obj; ++i)
       {
-        std::string dataset_name = "/a" + dealii::Utilities::int_to_string(i);
+        std::string dataset_name = "/a" + Utilities::int_to_string(i);
         hid_t dataset = H5Dopen1(file_id, dataset_name.c_str());
         hid_t datatype = H5Dget_type(dataset);
         hid_t dataspace = H5Dget_space(dataset);
         int rank = H5Sget_simple_extent_ndims(dataspace);
-        Assert(rank == 2, dealii::ExcInternalError());
+        Assert(rank == 2, StandardExceptions::ExcInternalError());
 
         hsize_t dims[2];
         hsize_t max_dims[2];
@@ -244,7 +245,7 @@ namespace H5
         dims[0] = matrices[i].m();
         dims[1] = matrices[i].n();
         hid_t dataspace_id = H5Screate_simple(2, dims, nullptr);
-        std::string dataset_name = "/a" + dealii::Utilities::int_to_string(i);
+        std::string dataset_name = "/a" + Utilities::int_to_string(i);
         hid_t dataset_id = H5Dcreate2(file_id, dataset_name.c_str(),
                                       H5T_NATIVE_DOUBLE, dataspace_id,
                                       H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);

@@ -1,6 +1,9 @@
-#include "ode.h"
+#include <deal.II-rom/ode/ode.h>
+
 namespace ODE
 {
+  using namespace dealii;
+
   RungeKuttaBase::RungeKuttaBase(std::unique_ptr<OperatorBase> rhs_function)
     : rhs_function {std::move(rhs_function)},
       n_dofs {numbers::invalid_unsigned_int}
@@ -16,12 +19,12 @@ namespace ODE
 
 
   RungeKutta4::RungeKutta4()
-    : RungeKuttaBase(std::unique_ptr<OperatorBase> (new EmptyOperator()))
+    : RungeKuttaBase(std::unique_ptr<OperatorBase> {new EmptyOperator()})
   {}
 
 
   RungeKutta4::RungeKutta4(std::unique_ptr<OperatorBase> rhs_function)
-    : RungeKuttaBase(std::move(rhs_function))
+    : RungeKuttaBase {std::move(rhs_function)}
   {}
 
 
@@ -60,7 +63,7 @@ namespace ODE
   RungeKutta4PostFilter::RungeKutta4PostFilter
   (std::unique_ptr<OperatorBase> rhs_function,
    std::unique_ptr<OperatorBase> filter_function)
-    : RungeKutta4(std::move(rhs_function)),
+    : RungeKutta4 {std::move(rhs_function)},
       filter_function {std::move(filter_function)}
   {}
 

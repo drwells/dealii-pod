@@ -1,4 +1,7 @@
-#include "pod.h"
+#include <deal.II-rom/h5/h5.h>
+
+#include <deal.II-rom/pod/pod.h>
+#include <deal.II-rom/pod/pod.templates.h>
 
 namespace POD
 {
@@ -164,7 +167,7 @@ namespace POD
   }
 
   void BlockPODBasis::project_to_fe(const BlockVector<double> &pod_vector,
-                                    BlockVector<double> &fe_vector) const
+                                    BlockVector<double>       &fe_vector) const
   {
     (void)pod_vector;
     (void)fe_vector;
@@ -173,8 +176,8 @@ namespace POD
   }
 
   void create_reduced_matrix(const std::vector<BlockVector<double>> &pod_vectors,
-                             const SparseMatrix<double> &full_matrix,
-                             FullMatrix<double> &rom_matrix)
+                             const SparseMatrix<double>             &full_matrix,
+                             FullMatrix<double>                     &rom_matrix)
   {
     std::vector<unsigned int> dims;
     for (unsigned int i = 0; i < pod_vectors.at(0).n_blocks(); ++i)
@@ -186,9 +189,9 @@ namespace POD
 
 
   void create_reduced_matrix(const std::vector<BlockVector<double>> &pod_vectors,
-                             const SparseMatrix<double> &full_matrix,
-                             const std::vector<unsigned int> dims,
-                             FullMatrix<double> &rom_matrix)
+                             const SparseMatrix<double>             &full_matrix,
+                             const std::vector<unsigned int>        &dims,
+                             FullMatrix<double>                     &rom_matrix)
   {
     const unsigned int n_dofs = pod_vectors[0].block(0).size();
     const unsigned int n_pod_dofs = pod_vectors.size();
@@ -207,4 +210,26 @@ namespace POD
           }
       }
   }
+
+  template<>
+  class PODOutput<2>;
+
+  template<>
+  class PODOutput<3>;
+
+  template<>
+  void create_dof_handler_from_triangulation_file
+  (const std::string &file_name,
+   const bool        &renumber,
+   const FE_Q<2>     &fe,
+   DoFHandler<2>     &dof_handler,
+   Triangulation<2>  &triangulation);
+
+  template<>
+  void create_dof_handler_from_triangulation_file
+  (const std::string &file_name,
+   const bool        &renumber,
+   const FE_Q<3>     &fe,
+   DoFHandler<3>     &dof_handler,
+   Triangulation<3>  &triangulation);
 }

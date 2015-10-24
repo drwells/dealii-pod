@@ -27,24 +27,28 @@
 
 #include <memory>
 
-using namespace dealii;
 namespace Leray
 {
+  using namespace dealii;
+
   class LerayFilter
   {
   public:
-    LerayFilter(const double filter_radius,
+    LerayFilter(const double                          filter_radius,
                 std::shared_ptr<SparseMatrix<double>> mass_matrix,
-                const SparseMatrix<double> &laplace_matrix,
-                const SparseMatrix<double> &boundary_matrix);
-    void apply(BlockVector<double> &dst, const BlockVector<double> &src);
+                const SparseMatrix<double>            &laplace_matrix,
+                const SparseMatrix<double>            &boundary_matrix);
+
+    void apply(BlockVector<double>       &dst,
+               const BlockVector<double> &src);
+
   private:
-    const double filter_radius;
+    const double                          filter_radius;
     std::shared_ptr<SparseMatrix<double>> mass_matrix;
-    SparseMatrix<double> x_system_matrix;
-    SparseMatrix<double> other_system_matrix;
-    SparseILU<double> x_preconditioner;
-    PreconditionChebyshev<> other_preconditioner;
+    SparseMatrix<double>                  x_system_matrix;
+    SparseMatrix<double>                  other_system_matrix;
+    SparseILU<double>                     x_preconditioner;
+    PreconditionChebyshev<>               other_preconditioner;
   };
 }
 #endif
