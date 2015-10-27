@@ -20,6 +20,5 @@ programs/ns/rom
 programs/project/project
 programs/compute-pod/compute-pod
 programs/compute-pod-matrices/compute-pod-matrices
-*png
-
-*so
+*.png
+*.so
