@@ -1,5 +1,7 @@
 #ifndef dealii__rom_pod_templates_h
 #define dealii__rom_pod_templates_h
+#include <fstream>
+
 #include <deal.II-pod/pod/pod.h>
 
 namespace POD
@@ -123,13 +125,13 @@ namespace POD
 
   template<int dim>
   void create_dof_handler_from_triangulation_file
-  (const std::string &file_name,
-   const bool &renumber,
-   const FE_Q<dim> &fe,
-   DoFHandler<dim> &dof_handler,
+  (const std::string  &file_name,
+   const bool         &renumber,
+   const FE_Q<dim>    &fe,
+   DoFHandler<dim>    &dof_handler,
    Triangulation<dim> &triangulation)
   {
-    std::ifstream in_stream (file_name);
+    std::ifstream in_stream(file_name);
     boost::archive::text_iarchive archive(in_stream);
     archive >> triangulation;
     dof_handler.initialize(triangulation, fe);

@@ -112,5 +112,12 @@ namespace POD
                              const std::vector<unsigned int>        &dims,
                              FullMatrix<double>                     &rom_matrix);
 
+  template<int dim>
+  void create_dof_handler_from_triangulation_file
+  (const std::string  &file_name,
+   const bool         &renumber,
+   const FE_Q<dim>    &fe,
+   DoFHandler<dim>    &dof_handler,
+   Triangulation<dim> &triangulation);
 }
 #endif
