@@ -1,8 +1,13 @@
+#include <deal.II/lac/lapack_full_matrix.h>
+#include <deal.II/lac/full_matrix.h>
+
+#include <deal.II-pod/h5/h5.h>
 #include <deal.II-pod/h5/h5.templates.h>
 
 namespace POD
 {
   using namespace dealii;
+
   namespace H5
   {
     template
@@ -11,7 +16,7 @@ namespace POD
 
     template
     void save_block_vector(const std::string &file_name,
-                           BlockVector<double> &block_vector);
+                           const BlockVector<double> &block_vector);
 
     template
     void load_full_matrix(const std::string &file_name,

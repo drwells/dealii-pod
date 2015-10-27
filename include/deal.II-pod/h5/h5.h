@@ -27,22 +27,24 @@
 
 namespace POD
 {
+  using namespace dealii;
+
   namespace H5
   {
     template<typename T>
-    void load_block_vector(std::string file_name,
-                           dealii::BlockVector<T> &block_vector);
+    void load_block_vector(const std::string &file_name,
+                           BlockVector<T> &block_vector);
 
     template<typename T>
-    void save_block_vector(std::string file_name,
-                           dealii::BlockVector<T> &block_vector);
+    void save_block_vector(const std::string &file_name,
+                           const BlockVector<T> &block_vector);
 
     template<typename T>
-    void load_full_matrix(std::string file_name,
+    void load_full_matrix(const std::string &file_name,
                           T &matrix);
 
     template<typename T>
-    void save_full_matrix(std::string file_name,
+    void save_full_matrix(const std::string &file_name,
                           T &matrix);
 
     template<typename T>

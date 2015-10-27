@@ -74,7 +74,7 @@ namespace POD
     // see an easy way to go from BlockVector<double> to H5T_NATIVE_DOUBLE.
     template<typename T>
     void save_block_vector(const std::string &file_name,
-                           BlockVector<T> &block_vector)
+                           const BlockVector<T> &block_vector)
     // Save a deal.II block vector to an HDF5 file as components a0, a1, etc.
     {
       hid_t file_id = H5Fcreate(file_name.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT,
@@ -89,7 +89,7 @@ namespace POD
                                          H5T_NATIVE_DOUBLE, dataspace_id,
                                          H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
           H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT,
-                   &(block_vector.block(i)[0]));
+                   static_cast<const void *>(block_vector.block(i).begin()));
           H5Dclose(dataset_id);
           H5Sclose(dataspace_id);
         }
@@ -113,7 +113,7 @@ namespace POD
       std::vector<hsize_t> dims(rank);
       std::vector<hsize_t> max_dims(rank);
       H5Sget_simple_extent_dims(dataspace, dims.data(), max_dims.data());
-      hsize_t bufsize = H5Dget_storage_size(dataset);
+
       matrix.reinit(dims[0], dims[1]);
       H5Dread(dataset, datatype, H5S_ALL, H5S_ALL, H5P_DEFAULT,
               static_cast<void *>(&(matrix(0, 0))));
@@ -166,7 +166,6 @@ namespace POD
       hsize_t dims[1];
       hsize_t max_dims[1];
       H5Sget_simple_extent_dims(dataspace, dims, max_dims);
-      hsize_t bufsize = H5Dget_storage_size(dataset);
       vector.reinit(dims[0]);
       H5Dread(dataset, datatype, H5S_ALL, H5S_ALL, H5P_DEFAULT,
               static_cast<void *>(&(vector[0])));
@@ -193,7 +192,7 @@ namespace POD
                                      H5T_NATIVE_DOUBLE, dataspace_id,
                                      H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
       H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT,
-               &(vector[0]));
+               static_cast<const void *>(vector.begin()));
       H5Dclose(dataset_id);
       H5Sclose(dataspace_id);
     }
