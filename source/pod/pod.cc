@@ -9,9 +9,9 @@ namespace POD
 {
   using namespace dealii;
 
-  void load_pod_basis(const std::string &pod_vector_glob,
-                      const std::string &mean_vector_file_name,
-                      BlockVector<double> &mean_vector,
+  void load_pod_basis(const std::string                &pod_vector_glob,
+                      const std::string                &mean_vector_file_name,
+                      BlockVector<double>              &mean_vector,
                       std::vector<BlockVector<double>> &pod_vectors)
   {
     for (auto &file_name : extra::expand_file_names(pod_vector_glob))
@@ -24,11 +24,11 @@ namespace POD
   }
 
 
-  void method_of_snapshots(const SparseMatrix<double> &mass_matrix,
+  void method_of_snapshots(const SparseMatrix<double>     &mass_matrix,
                            const std::vector<std::string> &snapshot_file_names,
-                           const unsigned int n_pod_vectors,
-                           const bool center_trajectory,
-                           BlockPODBasis &pod_basis)
+                           const unsigned int              n_pod_vectors,
+                           const bool                      center_trajectory,
+                           BlockPODBasis                  &pod_basis)
   {
     BlockVector<double> block_vector;
     std::vector<BlockVector<double>> snapshots;
