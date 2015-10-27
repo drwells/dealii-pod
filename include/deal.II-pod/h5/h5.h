@@ -45,7 +45,7 @@ namespace POD
 
     template<typename T>
     void save_full_matrix(const std::string &file_name,
-                          T &matrix);
+                          const T &matrix);
 
     template<typename T>
     void load_vector(const std::string &file_name,
@@ -53,7 +53,7 @@ namespace POD
 
     template<typename T>
     void save_vector(const std::string &file_name,
-                     T &vector);
+                     const T &vector);
 
     template<typename T>
     void load_full_matrices(const std::string &file_name,

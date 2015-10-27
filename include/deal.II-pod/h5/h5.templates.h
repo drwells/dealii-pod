@@ -126,7 +126,7 @@ namespace POD
 
     // TODO it should be possible to parameterize this by type.
     template<typename T>
-    void save_full_matrix(const std::string &file_name, T &matrix)
+    void save_full_matrix(const std::string &file_name, const T &matrix)
     // Save a deal.II full matrix.
     {
       hid_t file_id = H5Fcreate(file_name.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT,
@@ -141,7 +141,7 @@ namespace POD
                                     H5T_NATIVE_DOUBLE, dataspace_id,
                                     H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
       H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT,
-               &matrix(0, 0));
+               static_cast<const void *>(&matrix(0, 0)));
       H5Dclose(dataset_id);
       H5Sclose(dataspace_id);
       H5Fclose(file_id);
