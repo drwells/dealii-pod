@@ -18,9 +18,12 @@
 #include <string>
 #include <vector>
 
-namespace extra
+namespace POD
 {
-  std::vector<std::string>
-  expand_file_names
-  (const std::string &file_name_glob);
+  namespace extra
+  {
+    std::vector<std::string>
+    expand_file_names
+    (const std::string &file_name_glob);
+  }
 }

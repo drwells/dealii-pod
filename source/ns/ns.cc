@@ -2,6 +2,8 @@
 
 namespace POD
 {
+  using namespace dealii;
+
   namespace NavierStokes
   {
     PlainRHS::PlainRHS() {}

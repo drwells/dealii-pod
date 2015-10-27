@@ -25,38 +25,41 @@
 #include <string>
 #include <vector>
 
-namespace H5
+namespace POD
 {
-  template<typename T>
-  void load_block_vector(std::string file_name,
-                         dealii::BlockVector<T> &block_vector);
+  namespace H5
+  {
+    template<typename T>
+    void load_block_vector(std::string file_name,
+                           dealii::BlockVector<T> &block_vector);
 
-  template<typename T>
-  void save_block_vector(std::string file_name,
-                         dealii::BlockVector<T> &block_vector);
+    template<typename T>
+    void save_block_vector(std::string file_name,
+                           dealii::BlockVector<T> &block_vector);
 
-  template<typename T>
-  void load_full_matrix(std::string file_name,
-                        T &matrix);
+    template<typename T>
+    void load_full_matrix(std::string file_name,
+                          T &matrix);
 
-  template<typename T>
-  void save_full_matrix(std::string file_name,
-                        T &matrix);
+    template<typename T>
+    void save_full_matrix(std::string file_name,
+                          T &matrix);
 
-  template<typename T>
-  void load_vector(const std::string &file_name,
-                   T &vector);
+    template<typename T>
+    void load_vector(const std::string &file_name,
+                     T &vector);
 
-  template<typename T>
-  void save_vector(const std::string &file_name,
-                   T &vector);
+    template<typename T>
+    void save_vector(const std::string &file_name,
+                     T &vector);
 
-  template<typename T>
-  void load_full_matrices(const std::string &file_name,
-                          std::vector<T> &matrices);
+    template<typename T>
+    void load_full_matrices(const std::string &file_name,
+                            std::vector<T> &matrices);
 
-  template<typename T>
-  void save_full_matrices(const std::string &file_name,
-                          const std::vector<T> &matrices);
+    template<typename T>
+    void save_full_matrices(const std::string &file_name,
+                            const std::vector<T> &matrices);
+  }
 }
 #endif
