@@ -213,11 +213,9 @@ namespace POD
       }
   }
 
-  template<>
-  class PODOutput<2>;
+  template class PODOutput<2>;
 
-  template<>
-  class PODOutput<3>;
+  template class PODOutput<3>;
 
   template
   void create_dof_handler_from_triangulation_file
