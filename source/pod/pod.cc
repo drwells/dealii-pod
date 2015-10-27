@@ -1,3 +1,5 @@
+#include <deal.II-pod/extra/extra.h>
+
 #include <deal.II-pod/h5/h5.h>
 
 #include <deal.II-pod/pod/pod.h>
@@ -217,7 +219,7 @@ namespace POD
   template<>
   class PODOutput<3>;
 
-  template<>
+  template
   void create_dof_handler_from_triangulation_file
   (const std::string &file_name,
    const bool        &renumber,
@@ -225,7 +227,7 @@ namespace POD
    DoFHandler<2>     &dof_handler,
    Triangulation<2>  &triangulation);
 
-  template<>
+  template
   void create_dof_handler_from_triangulation_file
   (const std::string &file_name,
    const bool        &renumber,
