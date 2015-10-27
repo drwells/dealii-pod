@@ -1,4 +1,4 @@
-#include "filter.h"
+#include <deal.II-rom/ns/filter.h>
 
 using namespace dealii;
 namespace Leray

@@ -42,7 +42,7 @@
 #include <random>
 #include <vector>
 
-#include "../ode/ode.h"
+#include <deal.II-rom/ode/ode.h>
 
 using namespace dealii;
 namespace POD
