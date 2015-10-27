@@ -40,11 +40,11 @@
 #include <string>
 #include <vector>
 
-#include "../extra/extra.h"
-#include "../h5/h5.h"
-#include "../pod/pod.h"
-#include "../ns/ns.h"
-#include "../ns/filter.h"
+#include <deal.II-pod/extra/extra.h>
+#include <deal.II-pod/h5/h5.h>
+#include <deal.II-pod/pod/pod.h>
+#include <deal.II-pod/ns/ns.h>
+#include <deal.II-pod/ns/filter.h>
 
 constexpr int dim {3};
 constexpr bool renumber {false};
@@ -125,7 +125,7 @@ int main(int argc, char **argv)
     const unsigned int n_pod_vectors = pod_vectors.size();
 
     // load and sort the snapshot names.
-    auto file_names = extra::expand_file_names("snapshot-*h5");
+    auto file_names = POD::extra::expand_file_names("snapshot-*h5");
 
     // setup the FE filter.
     SparsityPattern sparsity_pattern;
@@ -146,7 +146,7 @@ int main(int argc, char **argv)
     POD::NavierStokes::create_boundary_matrix
       (dof_handler, face_quad, outflow_label, full_boundary_matrix);
 
-    Leray::LerayFilter filter
+    POD::Leray::LerayFilter filter
       (fe_filter_radius, full_mass_matrix, full_boundary_matrix,
        full_laplace_matrix);
 
@@ -184,7 +184,7 @@ int main(int argc, char **argv)
       {
         auto &file_name = file_names.at(snapshot_n);
         BlockVector<double> snapshot;
-        H5::load_block_vector(file_name, snapshot);
+        POD::H5::load_block_vector(file_name, snapshot);
         snapshot -= mean_vector;
         BlockVector<double> filtered_snapshot;
 
@@ -247,8 +247,8 @@ int main(int argc, char **argv)
                 StandardExceptions::ExcNotImplemented();
               }
             std::string solution_file_name = "y-velocity-"
-              + extra::int_to_string(10*snapshot_n + offset_n, 10)
-              + ".h5";
+                    + Utilities::int_to_string(10*snapshot_n + offset_n, 10)
+                    + ".h5";
 
             DataOut<dim> data_out;
             data_out.attach_dof_handler(dof_handler);
