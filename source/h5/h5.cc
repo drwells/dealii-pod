@@ -1,4 +1,4 @@
-#include <deal.II-rom/h5/h5.templates.h>
+#include <deal.II-pod/h5/h5.templates.h>
 
 namespace POD
 {

@@ -1,6 +1,6 @@
 #ifndef dealii__rom_pod_templates_h
 #define dealii__rom_pod_templates_h
-#include <deal.II-rom/pod/pod.h>
+#include <deal.II-pod/pod/pod.h>
 
 namespace POD
 {

@@ -1,4 +1,4 @@
-#include <deal.II-rom/ns/ns.h>
+#include <deal.II-pod/ns/ns.h>
 
 namespace POD
 {

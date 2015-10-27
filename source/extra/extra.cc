@@ -3,7 +3,7 @@
 #include <vector>
 #include <glob.h>
 
-#include <deal.II-rom/extra/extra.h>
+#include <deal.II-pod/extra/extra.h>
 
 namespace POD
 {

@@ -21,7 +21,7 @@
 #include <deal.II/base/utilities.h>
 #include <deal.II/lac/block_vector.h>
 
-#include <deal.II-rom/h5/h5.h>
+#include <deal.II-pod/h5/h5.h>
 
 #include <hdf5.h>
 

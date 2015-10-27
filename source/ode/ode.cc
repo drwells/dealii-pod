@@ -1,4 +1,4 @@
-#include <deal.II-rom/ode/ode.h>
+#include <deal.II-pod/ode/ode.h>
 
 namespace POD
 {

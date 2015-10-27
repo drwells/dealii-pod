@@ -1,4 +1,4 @@
-#include <deal.II-rom/ns/filter.h>
+#include <deal.II-pod/ns/filter.h>
 
 namespace POD
 {

@@ -1,7 +1,7 @@
-#include <deal.II-rom/h5/h5.h>
+#include <deal.II-pod/h5/h5.h>
 
-#include <deal.II-rom/pod/pod.h>
-#include <deal.II-rom/pod/pod.templates.h>
+#include <deal.II-pod/pod/pod.h>
+#include <deal.II-pod/pod/pod.templates.h>
 
 namespace POD
 {
