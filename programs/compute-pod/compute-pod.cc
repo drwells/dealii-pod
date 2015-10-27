@@ -30,9 +30,10 @@
 #include <sstream>
 #include <vector>
 
-#include "../extra/extra.h"
-#include "../pod/pod.h"
-#include "../h5/h5.h"
+#include <deal.II-pod/extra/extra.h>
+#include "deal.II-pod/pod/pod.h"
+#include "deal.II-pod/h5/h5.h"
+
 #include "parameters.h"
 
 

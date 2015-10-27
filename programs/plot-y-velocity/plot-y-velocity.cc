@@ -38,16 +38,19 @@
 #include <math.h>
 #include <vector>
 
-#include "../h5/h5.h"
-#include "../pod/pod.h"
-#include "../extra/extra.h"
+#include <deal.II-pod/h5/h5.h>
+#include <deal.II-pod/pod/pod.h>
+#include <deal.II-pod/extra/extra.h>
+
 #include "parameters.h"
 
 constexpr int dim {3};
 
-using namespace dealii;
 int main(int argc, char **argv)
 {
+  using namespace dealii;
+  using namespace POD;
+
   Utilities::MPI::MPI_InitFinalize mpi_initialization(argc, argv, 1);
 
   Parameters parameters;
@@ -86,8 +89,8 @@ int main(int argc, char **argv)
         }
       std::string mesh_file_name = "mesh.h5";
       std::string solution_file_name = "y-velocity-"
-        + extra::int_to_string(snapshot_n, 10)
-        + ".h5";
+              + Utilities::int_to_string(snapshot_n, 10)
+              + ".h5";
       std::string xdmf_filename = "solution.xdmf";
       DataOutBase::DataOutFilter data_filter
         (DataOutBase::DataOutFilterFlags(true, true));

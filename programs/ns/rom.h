@@ -39,18 +39,19 @@
 #include <utility>
 #include <vector>
 
-#include "filter.h"
+#include <deal.II-pod/h5/h5.h>
+#include <deal.II-pod/ode/ode.h>
+#include <deal.II-pod/ns/filter.h>
+#include <deal.II-pod/ns/ns.h>
+#include <deal.II-pod/pod/pod.h>
+
 #include "parameters.h"
-#include "../h5/h5.h"
-#include "../pod/pod.h"
-#include "../ode/ode.h"
 #include "rk_factory.h"
-#include "ns.h"
 
 namespace NavierStokes
 {
   using namespace dealii;
-
+  using namespace POD;
 
   template<int dim>
   class ROM

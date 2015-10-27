@@ -19,14 +19,17 @@
 #include <string>
 #include <vector>
 
-#include "../pod/pod.h"
-#include "../h5/h5.h"
-#include "../extra/extra.h"
+#include <deal.II-pod/pod/pod.h>
+#include <deal.II-pod/h5/h5.h>
+#include <deal.II-pod/extra/extra.h>
 
 constexpr int dim {3};
 
 int main(int argc, char **argv)
 {
+  using namespace dealii;
+  using namespace POD;
+
   SparsityPattern sparsity_pattern;
   Triangulation<dim> triangulation;
   FE_Q<dim> fe(2);

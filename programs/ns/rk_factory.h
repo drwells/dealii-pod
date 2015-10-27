@@ -25,8 +25,9 @@
 #include <utility>
 #include <vector>
 
-#include "../ode/ode.h"
-#include "ns.h"
+#include <deal.II-pod/ode/ode.h>
+#include <deal.II-pod/ns/ns.h>
+
 #include "parameters.h"
 
 namespace POD

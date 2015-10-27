@@ -36,16 +36,18 @@
 #include <math.h>
 #include <vector>
 
-#include "../extra/extra.h"
-#include "../h5/h5.h"
-#include "../pod/pod.h"
+#include <deal.II-pod/extra/extra.h>
+#include <deal.II-pod/h5/h5.h>
+#include <deal.II-pod/pod/pod.h>
 
 constexpr int dim {3};
 constexpr bool renumber {false};
 
-using namespace dealii;
 int main(int argc, char **argv)
   {
+    using namespace dealii;
+    using namespace POD;
+
     Utilities::MPI::MPI_InitFinalize mpi_initialization(argc, argv, 1);
 
     const FE_Q<dim> fe(2);

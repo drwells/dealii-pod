@@ -21,17 +21,18 @@
 #include <memory>
 #include <vector>
 
-#include "../ns/filter.h"
-#include "../ns/ns.h"
-#include "../extra/extra.h"
-#include "../pod/pod.h"
-#include "../h5/h5.h"
-#include "parameters.h"
+#include <deal.II-pod/ns/filter.h>
+#include <deal.II-pod/ns/ns.h>
+#include <deal.II-pod/extra/extra.h>
+#include <deal.II-pod/pod/pod.h>
+#include <deal.II-pod/h5/h5.h>
 
+#include "parameters.h"
 
 namespace ComputePOD
 {
   using namespace dealii;
+  using namespace POD;
 
   template<int dim>
   class ComputePODMatrices
