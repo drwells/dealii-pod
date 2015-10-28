@@ -35,6 +35,9 @@ ENDIF()
 
 INCLUDE_DIRECTORIES("include")
 
+# define executables here so that the test suite can find them
+SET(NS_ROM_TARGET ns-rom)
+
 ADD_SUBDIRECTORY("source")
 ADD_SUBDIRECTORY("programs")
 
