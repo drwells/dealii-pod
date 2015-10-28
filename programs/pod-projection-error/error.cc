@@ -25,7 +25,7 @@
 
 constexpr int dim {3};
 
-int main(int argc, char **argv)
+int main()
 {
   using namespace dealii;
   using namespace POD;
