@@ -27,9 +27,5 @@ subsection ROM Configuration
 end
 
 subsection Output Configuration
-  set patch_refinement = 2
   set output_interval = 100
-  set save_plot_pictures = false
-  set output_plot_time_start = 30.0
-  set output_plot_time_stop = 2000.0
 end

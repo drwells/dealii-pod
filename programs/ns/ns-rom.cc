@@ -195,11 +195,7 @@ namespace NavierStokes
       /parameters.output_interval;
     FullMatrix<double> solutions(n_save_steps + 1, n_pod_dofs);
     unsigned int output_n = 0;
-    if (parameters.save_plot_pictures)
-      {
-        auto prefix = outname.substr(0, outname.size() - 3) + "-";
-        pod_output.reinit(dof_handler, mean_vector, pod_vectors, prefix);
-      }
+
     while (time < parameters.final_time)
       {
         old_solution = solution;
@@ -221,13 +217,6 @@ namespace NavierStokes
                 solutions(output_n, i) = output_solution(i);
               }
             ++output_n;
-
-            if (parameters.save_plot_pictures
-                and time >= parameters.output_plot_time_start
-                and time <= parameters.output_plot_time_stop)
-              {
-                pod_output.save_solution(output_solution, time, timestep_number);
-              }
           }
         ++timestep_number;
         time += parameters.time_step;

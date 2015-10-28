@@ -55,11 +55,7 @@ namespace POD
       double final_time;
       double time_step;
 
-      int patch_refinement;
-      double output_plot_time_start;
-      double output_plot_time_stop;
       int output_interval;
-      bool save_plot_pictures;
 
       void read_data(const std::string &file_name);
     private:

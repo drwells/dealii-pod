@@ -57,20 +57,8 @@ namespace POD
       parameter_handler.enter_subsection("Output Configuration");
       {
         parameter_handler.declare_entry
-          ("patch_refinement", "2", Patterns::Integer(0), " Level of patch refinement"
-           " for graphical output.");
-        parameter_handler.declare_entry
-          ("output_plot_time_start", "100", Patterns::Double(), "Time to start saving the "
-           "graphical output.");
-        parameter_handler.declare_entry
-          ("output_plot_time_stop", "110", Patterns::Double(), "Time to stop saving the "
-           "graphical output.");
-        parameter_handler.declare_entry
           ("output_interval", "10", Patterns::Integer(0), " Number of iterations "
            "between which output is saved.");
-        parameter_handler.declare_entry
-          ("save_plot_pictures", "false", Patterns::Bool(), " Whether or not to save"
-           " graphical output. This option is very expensive!");
       }
       parameter_handler.leave_subsection();
     }
@@ -145,11 +133,7 @@ namespace POD
 
       parameter_handler.enter_subsection("Output Configuration");
       {
-        patch_refinement = parameter_handler.get_integer("patch_refinement");
-        output_plot_time_start = parameter_handler.get_double("output_plot_time_start");
-        output_plot_time_stop = parameter_handler.get_double("output_plot_time_stop");
         output_interval = parameter_handler.get_integer("output_interval");
-        save_plot_pictures = parameter_handler.get_bool("save_plot_pictures");
       }
       parameter_handler.leave_subsection();
     }
