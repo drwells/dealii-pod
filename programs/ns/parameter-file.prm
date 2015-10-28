@@ -20,6 +20,7 @@ subsection Filtering Model Configuration
 end
 
 subsection ROM Configuration
+  set n_pod_dofs = 10
   set initial_time = 30.0
   set final_time = 2000
   set time_step = 1.0e-4

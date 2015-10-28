@@ -16,6 +16,7 @@
  * Author: David Wells, Virginia Tech, 2014
  *         David Wells, Rensselaer Polytechnic Institute, 2015
  */
+#include <deal.II/base/table_indices.h>
 
 #include <deal.II/lac/vector.h>
 #include <deal.II/lac/full_matrix.h>
@@ -41,6 +42,41 @@ namespace NavierStokes
   using namespace dealii;
   using namespace POD;
 
+  void resize_square_matrix(FullMatrix<double> &matrix,
+                            const unsigned int new_size)
+  {
+    FullMatrix<double> temp;
+    temp = matrix;
+
+    // free all memory, then reallocate
+    TableIndices<2> empty_table(0, 0);
+    matrix.reinit(empty_table);
+    TableIndices<2> indices(new_size, new_size);
+    matrix.reinit(indices);
+    for (unsigned int i = 0; i < new_size; ++i)
+      {
+        for (unsigned int j = 0; j < new_size; ++j)
+          {
+            matrix(i, j) = temp(i, j);
+          }
+      }
+  }
+
+  void resize_vector(Vector<double> &vector,
+                     const unsigned int new_size)
+  {
+    Vector<double> temp;
+    temp = vector;
+
+    // free all memory, then reallocate
+    vector.reinit(0);
+    vector.reinit(new_size);
+    for (unsigned int i = 0; i < new_size; ++i)
+      {
+        vector[i] = temp[i];
+      }
+  }
+
   template<int dim>
   class ROM
   {
@@ -52,8 +88,7 @@ namespace NavierStokes
     void setup_reduced_system();
     void time_iterate();
 
-    POD::NavierStokes::Parameters    parameters;
-
+    const POD::NavierStokes::Parameters parameters;
 
     FullMatrix<double>               mass_matrix;
     FullMatrix<double>               boundary_matrix;
@@ -63,7 +98,7 @@ namespace NavierStokes
     std::vector<FullMatrix<double>>  nonlinear_operator;
     Vector<double>                   mean_contribution_vector;
 
-    unsigned int                     n_pod_dofs;
+    const unsigned int               n_pod_dofs;
 
     Vector<double>                   solution;
 
@@ -76,31 +111,58 @@ namespace NavierStokes
   ROM<dim>::ROM(const POD::NavierStokes::Parameters &parameters)
     :
     parameters(parameters),
+    n_pod_dofs {parameters.n_pod_dofs},
     time {parameters.initial_time},
     timestep_number {0}
   {}
 
 
   template<int dim>
+  void ROM<dim>::setup_reduced_system()
   {
+    FullMatrix<double> advection_matrix;
+    FullMatrix<double> gradient_matrix;
+
+    H5::load_full_matrix("rom-mass-matrix.h5", mass_matrix);
+    H5::load_full_matrix("rom-boundary-matrix.h5", boundary_matrix);
+    H5::load_full_matrix("rom-laplace-matrix.h5", laplace_matrix);
+    H5::load_full_matrix("rom-advection-matrix.h5", advection_matrix);
+    H5::load_full_matrix("rom-gradient-matrix.h5", gradient_matrix);
+    H5::load_full_matrices("rom-nonlinearity.h5", nonlinear_operator);
+    H5::load_vector("rom-mean-contribution.h5", mean_contribution_vector);
+    H5::load_vector("rom-initial-condition.h5", solution);
+
+    // TODO add resizing code here so that we can trim down these matrices, if
+    // requested
+    if (n_pod_dofs < mass_matrix.m())
       {
+        resize_square_matrix(mass_matrix, n_pod_dofs);
+        resize_square_matrix(boundary_matrix, n_pod_dofs);
+        resize_square_matrix(laplace_matrix, n_pod_dofs);
+        resize_square_matrix(advection_matrix, n_pod_dofs);
+        resize_square_matrix(gradient_matrix, n_pod_dofs);
+
+        nonlinear_operator.resize(n_pod_dofs);
+        for (unsigned int i = 0; i < n_pod_dofs; ++i)
           {
+            resize_square_matrix(nonlinear_operator[i], n_pod_dofs);
           }
 
+        resize_vector(mean_contribution_vector, n_pod_dofs);
+        resize_vector(solution, n_pod_dofs);
       }
 
     // The joint convection matrix is necessary for the L2 Projection model (all
     // terms resulting from the nonlinearity must be filtered)
     joint_convection.reinit(n_pod_dofs, n_pod_dofs);
-    joint_convection.add(-1.0, convection_matrix_0);
-    joint_convection.add(-1.0, convection_matrix_1);
+    joint_convection.add(-1.0, advection_matrix);
+    joint_convection.add(-1.0, gradient_matrix);
 
     linear_operator.reinit(n_pod_dofs, n_pod_dofs);
     linear_operator.add(-1.0/parameters.reynolds_n, laplace_matrix);
     linear_operator.add(1.0/parameters.reynolds_n, boundary_matrix);
-    linear_operator.add(-1.0, convection_matrix_0);
-    linear_operator.add(-1.0, convection_matrix_1);
-    std::cout << "assembled all affine terms." << std::endl;
+    linear_operator.add(-1.0, advection_matrix);
+    linear_operator.add(-1.0, gradient_matrix);
   }
 
 

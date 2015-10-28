@@ -44,6 +44,8 @@ namespace POD
       parameter_handler.enter_subsection("ROM Configuration");
       {
         parameter_handler.declare_entry
+          ("n_pod_dofs", "1", Patterns::Integer(1), "Number of POD vectors.");
+        parameter_handler.declare_entry
           ("initial_time", "30.0", Patterns::Double(), " Initial time for the ROM.");
         parameter_handler.declare_entry
           ("final_time", "500.0", Patterns::Double(), " Final time for the ROM.");
@@ -134,6 +136,7 @@ namespace POD
 
       parameter_handler.enter_subsection("ROM Configuration");
       {
+        n_pod_dofs = parameter_handler.get_double("n_pod_dofs");
         initial_time = parameter_handler.get_double("initial_time");
         final_time = parameter_handler.get_double("final_time");
         time_step = parameter_handler.get_double("time_step");

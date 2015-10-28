@@ -49,6 +49,7 @@ namespace POD
       unsigned int cutoff_n;
       bool filter_mean;
 
+      unsigned int n_pod_dofs;
       double initial_time;
       double final_time;
       double time_step;
