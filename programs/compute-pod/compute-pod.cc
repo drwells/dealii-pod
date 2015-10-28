@@ -214,7 +214,7 @@ int main(int argc, char **argv)
   Utilities::MPI::MPI_InitFinalize mpi_initialization
   (argc, argv, numbers::invalid_unsigned_int);
   {
-    Parameters parameters;
+    POD::Parameters parameters;
     parameters.read_data("parameter-file.prm");
     if (parameters.dimension == 2)
       {

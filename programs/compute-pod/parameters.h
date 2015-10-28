@@ -21,23 +21,27 @@
 
 #include <string>
 
-using namespace dealii;
-class Parameters
+namespace POD
 {
-public:
-  int dimension;
-  int fe_order;
-  bool renumber;
-  std::string snapshot_glob;
-  std::string triangulation_file_name;
+  using namespace dealii;
 
-  int n_pod_vectors;
-  bool center_trajectory;
+  class Parameters
+  {
+  public:
+    int dimension;
+    int fe_order;
+    bool renumber;
+    std::string snapshot_glob;
+    std::string triangulation_file_name;
 
-  bool save_plot_pictures;
+    int n_pod_vectors;
+    bool center_trajectory;
 
-  void read_data(const std::string &file_name);
-private:
-  void configure_parameter_handler(ParameterHandler &file_name) const;
-};
+    bool save_plot_pictures;
+
+    void read_data(const std::string &file_name);
+  private:
+    void configure_parameter_handler(ParameterHandler &file_name) const;
+  };
+}
 #endif
