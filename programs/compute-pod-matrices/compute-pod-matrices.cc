@@ -291,6 +291,7 @@ namespace ComputePOD
     H5::save_full_matrix("rom-gradient-matrix.h5", gradient_matrix);
     H5::save_full_matrix("rom-advection-matrix.h5", advection_matrix);
     H5::save_vector("rom-mean-contribution.h5", mean_contribution);
+    H5::save_vector("rom-initial-condition.h5", initial);
     H5::save_full_matrices("rom-nonlinearity.h5", nonlinearity);
   }
 
