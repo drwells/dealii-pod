@@ -1,5 +1,5 @@
 /* ---------------------------------------------------------------------
- * Copyright (C) 2014 David Wells
+ * Copyright (C) 2014-2015 David Wells
  *
  * This file is NOT part of the deal.II library.
  *
@@ -14,6 +14,7 @@
  * This program is based on step-26 of the deal.ii library.
  *
  * Author: David Wells, Virginia Tech, 2014
+ * Author: David Wells, Rensselaer Polytechnic Institute, 2015
  */
 #ifndef dealii__rom_ns_parameters_h
 #define dealii__rom_ns_parameters_h

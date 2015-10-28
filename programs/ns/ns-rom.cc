@@ -1,5 +1,5 @@
 /* ---------------------------------------------------------------------
- * Copyright (C) 2014 David Wells
+ * Copyright (C) 2014-2015 David Wells
  *
  * This file is NOT part of the deal.II library.
  *
@@ -11,8 +11,6 @@
  * the top level of the deal.II distribution.
  *
  * ---------------------------------------------------------------------
- * This program is based on step-26 of the deal.ii library.
- *
  * Author: David Wells, Virginia Tech, 2014
  *         David Wells, Rensselaer Polytechnic Institute, 2015
  */
