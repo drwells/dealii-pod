@@ -22,7 +22,7 @@
 #include <deal.II/grid/tria.h>
 
 #include <deal.II/lac/block_vector.h>
-#include <deal.II/lac/compressed_sparsity_pattern.h>
+#include <deal.II/lac/dynamic_sparsity_pattern.h>
 #include <deal.II/lac/vector.h>
 
 #include <deal.II/numerics/data_out.h>
@@ -71,9 +71,11 @@ int main(int argc, char **argv)
   POD::load_pod_basis
     (parameters.pod_vector_glob, parameters.mean_vector_file_name, mean_vector,
      pod_vectors);
-  CompressedSparsityPattern c_sparsity(dof_handler.n_dofs());
-  DoFTools::make_sparsity_pattern(dof_handler, c_sparsity);
-  sparsity_pattern.copy_from(c_sparsity);
+  {
+    DynamicSparsityPattern d_sparsity(dof_handler.n_dofs());
+    DoFTools::make_sparsity_pattern(dof_handler, d_sparsity);
+    sparsity_pattern.copy_from(d_sparsity);
+  }
 
   FullMatrix<double> mass_matrix;
   FullMatrix<double> laplace_matrix;

@@ -5,7 +5,7 @@
 #include <deal.II/fe/fe_q.h>
 
 #include <deal.II/lac/block_vector.h>
-#include <deal.II/lac/compressed_sparsity_pattern.h>
+#include <deal.II/lac/dynamic_sparsity_pattern.h>
 #include <deal.II/lac/full_matrix.h>
 #include <deal.II/lac/sparse_matrix.h>
 
@@ -55,7 +55,7 @@ int main()
   const unsigned int n_pod_dofs = pod_vectors.size();
 
   {
-    CompressedSparsityPattern d_sparsity(dof_handler.n_dofs());
+    DynamicSparsityPattern d_sparsity(dof_handler.n_dofs());
     DoFTools::make_sparsity_pattern(dof_handler, d_sparsity);
     sparsity_pattern.copy_from(d_sparsity);
   }

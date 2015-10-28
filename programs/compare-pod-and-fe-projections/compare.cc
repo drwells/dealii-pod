@@ -22,7 +22,7 @@
 #include <deal.II/grid/tria.h>
 
 #include <deal.II/lac/block_vector.h>
-#include <deal.II/lac/compressed_sparsity_pattern.h>
+#include <deal.II/lac/dynamic_sparsity_pattern.h>
 #include <deal.II/lac/full_matrix.h>
 #include <deal.II/lac/lapack_full_matrix.h>
 #include <deal.II/lac/sparse_matrix.h>
@@ -130,9 +130,9 @@ int main(int argc, char **argv)
     // setup the FE filter.
     SparsityPattern sparsity_pattern;
     {
-      CompressedSparsityPattern c_sparsity(dof_handler.n_dofs());
-      DoFTools::make_sparsity_pattern(dof_handler, c_sparsity);
-      sparsity_pattern.copy_from(c_sparsity);
+      DynamicSparsityPattern d_sparsity(dof_handler.n_dofs());
+      DoFTools::make_sparsity_pattern(dof_handler, d_sparsity);
+      sparsity_pattern.copy_from(d_sparsity);
     }
 
     std::shared_ptr<SparseMatrix<double>> full_mass_matrix

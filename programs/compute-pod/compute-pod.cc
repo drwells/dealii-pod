@@ -3,7 +3,7 @@
 
 #include <deal.II/lac/full_matrix.h>
 #include <deal.II/lac/vector.h>
-#include <deal.II/lac/compressed_sparsity_pattern.h>
+#include <deal.II/lac/dynamic_sparsity_pattern.h>
 #include <deal.II/lac/sparse_matrix.h>
 
 #include <deal.II/grid/tria.h>
@@ -91,9 +91,9 @@ namespace POD
         DoFRenumbering::boost::Cuthill_McKee(vector_dof_handler);
       }
 
-    CompressedSparsityPattern c_sparsity(dof_handler.n_dofs());
-    DoFTools::make_sparsity_pattern(dof_handler, c_sparsity);
-    sparsity_pattern.copy_from(c_sparsity);
+    DynamicSparsityPattern d_sparsity(dof_handler.n_dofs());
+    DoFTools::make_sparsity_pattern(dof_handler, d_sparsity);
+    sparsity_pattern.copy_from(d_sparsity);
     mass_matrix.reinit(sparsity_pattern);
     MatrixCreator::create_mass_matrix(dof_handler, quadrature_rule, mass_matrix);
   }

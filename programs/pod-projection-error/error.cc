@@ -2,7 +2,7 @@
 
 #include <deal.II/lac/block_vector.h>
 #include <deal.II/lac/vector.h>
-#include <deal.II/lac/compressed_sparsity_pattern.h>
+#include <deal.II/lac/dynamic_sparsity_pattern.h>
 #include <deal.II/lac/sparse_matrix.h>
 
 #include <deal.II/grid/tria.h>
@@ -36,11 +36,13 @@ int main(int argc, char **argv)
   QGauss<dim> quad(4);
   DoFHandler<dim> dof_handler;
   SparseMatrix<double> mass_matrix;
-  POD::create_dof_handler_from_triangulation_file
-    ("triangulation.txt", false, fe, dof_handler, triangulation);
-  CompressedSparsityPattern c_sparsity(dof_handler.n_dofs());
-  DoFTools::make_sparsity_pattern(dof_handler, c_sparsity);
-  sparsity_pattern.copy_from(c_sparsity);
+  {
+    POD::create_dof_handler_from_triangulation_file
+      ("triangulation.txt", false, fe, dof_handler, triangulation);
+    DynamicSparsityPattern d_sparsity(dof_handler.n_dofs());
+    DoFTools::make_sparsity_pattern(dof_handler, d_sparsity);
+    sparsity_pattern.copy_from(d_sparsity);
+  }
   mass_matrix.reinit(sparsity_pattern);
   MatrixCreator::create_mass_matrix(dof_handler, quad, mass_matrix);
   std::vector<BlockVector<double>> pod_vectors;
