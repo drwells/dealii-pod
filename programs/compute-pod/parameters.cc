@@ -1,3 +1,5 @@
+#include <fstream>
+
 #include "parameters.h"
 
 void Parameters::configure_parameter_handler

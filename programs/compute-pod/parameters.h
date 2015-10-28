@@ -19,7 +19,6 @@
 #define dealii__rom_compute_pod_parameters_h
 #include <deal.II/base/parameter_handler.h>
 
-#include <fstream>
 #include <string>
 
 using namespace dealii;
