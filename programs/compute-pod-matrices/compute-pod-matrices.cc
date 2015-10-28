@@ -87,7 +87,11 @@ namespace ComputePOD
     :
     parameters(params),
     fe(params.fe_order),
-    quad(params.fe_order + 2)
+    quad(params.fe_order + 2),
+    filtered_pod_vectors {std::make_shared<std::vector<BlockVector<double>>>()},
+    filtered_mean_vector {std::make_shared<BlockVector<double>>()},
+    pod_vectors {std::make_shared<std::vector<BlockVector<double>>>()},
+    mean_vector {std::make_shared<BlockVector<double>>()}
   {
     POD::create_dof_handler_from_triangulation_file
     (parameters.triangulation_file_name, parameters.renumber, fe, dof_handler,
