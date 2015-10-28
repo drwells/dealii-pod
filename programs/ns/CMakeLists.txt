@@ -2,7 +2,6 @@ SET(TARGET "rom")
 
 SET(TARGET_SRC
   ${TARGET}.cc
-  ${TARGET}.h
   parameters.cc
   parameters.h
   rk_factory.h
