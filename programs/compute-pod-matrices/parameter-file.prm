@@ -9,6 +9,6 @@ end
 
 subsection ROM
   set center_trajectory = true
-  set use_leray_regularization = true
+  set use_leray_regularization = false
   set filter_radius = 0.01
 end
