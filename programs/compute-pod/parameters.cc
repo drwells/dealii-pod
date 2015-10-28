@@ -5,7 +5,7 @@
 void Parameters::configure_parameter_handler
 (ParameterHandler &parameter_handler) const
 {
-  parameter_handler.enter_subsection("DNS Information");
+  parameter_handler.enter_subsection("DNS");
   {
     parameter_handler.declare_entry
       ("fe_order", "2", Patterns::Integer(1), "Order of the finite element.");
@@ -21,7 +21,7 @@ void Parameters::configure_parameter_handler
   }
   parameter_handler.leave_subsection();
 
-  parameter_handler.enter_subsection("ROM Configuration");
+  parameter_handler.enter_subsection("ROM");
   {
     parameter_handler.declare_entry
     ("n_pod_vectors", "100", Patterns::Integer(1), "Number of POD vectors to "
@@ -29,7 +29,7 @@ void Parameters::configure_parameter_handler
   }
   parameter_handler.leave_subsection();
 
-  parameter_handler.enter_subsection("Output Configuration");
+  parameter_handler.enter_subsection("Output");
   {
     parameter_handler.declare_entry
     ("save_plot_pictures", "false", Patterns::Bool(), " Whether or not to save"
@@ -47,7 +47,7 @@ void Parameters::read_data(const std::string &file_name)
     parameter_handler.read_input(file);
   }
 
-  parameter_handler.enter_subsection("DNS Information");
+  parameter_handler.enter_subsection("DNS");
   {
     fe_order = parameter_handler.get_integer("fe_order");
     renumber = parameter_handler.get_bool("renumber");
@@ -56,13 +56,13 @@ void Parameters::read_data(const std::string &file_name)
   }
   parameter_handler.leave_subsection();
 
-  parameter_handler.enter_subsection("ROM Configuration");
+  parameter_handler.enter_subsection("ROM");
   {
     n_pod_vectors = parameter_handler.get_integer("n_pod_vectors");
   }
   parameter_handler.leave_subsection();
 
-  parameter_handler.enter_subsection("Output Configuration");
+  parameter_handler.enter_subsection("Output");
   {
     save_plot_pictures = parameter_handler.get_bool("save_plot_pictures");
   }

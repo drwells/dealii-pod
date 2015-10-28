@@ -1,14 +1,14 @@
-subsection DNS Information
+subsection DNS
   set fe_order = 2
   set renumber = false
   set snapshot_glob = snapshot-*h5
   set triangulation_file_name = triangulation.txt
 end
 
-subsection ROM Configuration
+subsection ROM
   set n_pod_vectors = 1000
 end
 
-subsection Output Configuration
+subsection Output
   set save_plot_pictures = false
 end
