@@ -29,3 +29,4 @@ programs/ns/ns-rom
 programs/plot-y-velocity/plot-y-velocity
 programs/pod-projection-error/error
 programs/project/project
+programs/plot-pod-snapshots/plot-pod-snapshots

@@ -1,0 +1,16 @@
+subsection DNS
+  set dimension = 2
+  set fe_order = 2
+  set renumber = false
+  set triangulation_file_name = triangulation.txt
+end
+
+subsection ROM
+  set pod_coefficients_file_name = pod-data.h5
+  set start_time = 30.0
+  set time_step = 1e-4
+end
+
+subsection Output
+  set output_interval = 100
+end
