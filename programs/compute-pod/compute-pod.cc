@@ -112,25 +112,6 @@ namespace POD
   template<int dim>
   void PODVectors<dim>::save_pod_basis()
   {
-    if (parameters.save_mass_matrix)
-      {
-        FullMatrix<double> rom_mass_matrix(pod_result.get_n_pod_vectors());
-        POD::create_reduced_matrix
-          (pod_result.vectors, mass_matrix, rom_mass_matrix);
-        H5::save_full_matrix("rom-mass-matrix.h5", rom_mass_matrix);
-      }
-
-    if (parameters.save_laplace_matrix)
-      {
-        SparseMatrix<double> laplace_matrix(sparsity_pattern);
-        MatrixCreator::create_laplace_matrix
-          (dof_handler, quadrature_rule, laplace_matrix);
-        FullMatrix<double> rom_laplace_matrix(pod_result.get_n_pod_vectors());
-        POD::create_reduced_matrix
-          (pod_result.vectors, laplace_matrix, rom_laplace_matrix);
-        H5::save_full_matrix("rom-laplace-matrix.h5", rom_laplace_matrix);
-      }
-
     std::ofstream singular_values_stream;
     singular_values_stream.open("singular_values.txt");
     for (auto singular_value : pod_result.singular_values)

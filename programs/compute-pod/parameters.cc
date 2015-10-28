@@ -30,12 +30,6 @@ void Parameters::configure_parameter_handler
   parameter_handler.enter_subsection("Output Configuration");
   {
     parameter_handler.declare_entry
-    ("save_mass_matrix", "false", Patterns::Bool(), " Whether or not to save"
-     " the POD mass matrix.");
-    parameter_handler.declare_entry
-    ("save_laplace_matrix", "false", Patterns::Bool(), " Whether or not to save"
-     " the POD Laplace matrix.");
-    parameter_handler.declare_entry
     ("save_plot_pictures", "false", Patterns::Bool(), " Whether or not to save"
      " graphical output.");
   }
@@ -68,8 +62,6 @@ void Parameters::read_data(const std::string &file_name)
 
   parameter_handler.enter_subsection("Output Configuration");
   {
-    save_mass_matrix = parameter_handler.get_bool("save_mass_matrix");
-    save_laplace_matrix = parameter_handler.get_bool("save_laplace_matrix");
     save_plot_pictures = parameter_handler.get_bool("save_plot_pictures");
   }
   parameter_handler.leave_subsection();

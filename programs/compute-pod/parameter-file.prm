@@ -10,7 +10,5 @@ subsection ROM Configuration
 end
 
 subsection Output Configuration
-  set save_mass_matrix = true
-  set save_laplace_matrix = true
   set save_plot_pictures = false
 end
