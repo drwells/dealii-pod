@@ -19,6 +19,7 @@ IF(OPENMP_FOUND)
   SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
 ENDIF()
 
+# Modify the warning flags to be saner (more messages, less template barf)
 INCLUDE(CheckCXXCompilerFlag)
 SET(DEAL_II_ROM_TEMPLATE_ERROR_FLAGS "-fmax-errors=3 -ftemplate-backtrace-limit=1")
 CHECK_CXX_COMPILER_FLAG(DEAL_II_ROM_TEMPLATE_ERROR_FLAGS
