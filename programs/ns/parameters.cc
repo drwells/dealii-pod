@@ -12,14 +12,6 @@ namespace POD
         parameter_handler.declare_entry
           ("reynolds_n", "50.0", Patterns::Double(0.0), " Reynolds number of the "
            "underlying simulation.");
-        parameter_handler.declare_entry
-          ("outflow_label", "3", Patterns::Integer(0), " Label of the outflow "
-           "boundary.");
-        parameter_handler.declare_entry
-          ("fe_order", "2", Patterns::Integer(1), " Order of the finite element.");
-        parameter_handler.declare_entry
-          ("renumber", "false", Patterns::Bool(), " Whether or not to renumber "
-           "the nodes with Cuthill-McKee.");
       }
       parameter_handler.leave_subsection();
 
@@ -93,9 +85,6 @@ namespace POD
       parameter_handler.enter_subsection("DNS Information");
       {
         reynolds_n = parameter_handler.get_double("reynolds_n");
-        outflow_label = parameter_handler.get_integer("outflow_label");
-        fe_order = parameter_handler.get_integer("fe_order");
-        renumber = parameter_handler.get_bool("renumber");
       }
       parameter_handler.leave_subsection();
 

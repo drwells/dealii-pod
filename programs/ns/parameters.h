@@ -40,10 +40,7 @@ namespace POD
     class Parameters
     {
     public:
-      int outflow_label;
       double reynolds_n;
-      bool renumber;
-      int fe_order;
 
       POD::FilterModel filter_model;
       double noise_multiplier;

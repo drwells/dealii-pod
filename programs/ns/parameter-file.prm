@@ -1,8 +1,5 @@
 subsection DNS Information
   set reynolds_n = 100.0
-  set outflow_label = 3
-  set fe_order = 2
-  set renumber = false
 end
 
 subsection Filtering Model Configuration
