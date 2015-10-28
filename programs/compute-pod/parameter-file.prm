@@ -1,4 +1,5 @@
 subsection DNS
+  set dimension = 2
   set fe_order = 2
   set renumber = false
   set snapshot_glob = snapshot-*h5

@@ -216,7 +216,15 @@ int main(int argc, char **argv)
   {
     Parameters parameters;
     parameters.read_data("parameter-file.prm");
-    PODVectors<2> pod_vectors(parameters);
-    pod_vectors.run();
+    if (parameters.dimension == 2)
+      {
+        PODVectors<2> pod_vectors(parameters);
+        pod_vectors.run();
+      }
+    else
+      {
+        PODVectors<3> pod_vectors(parameters);
+        pod_vectors.run();
+      }
   }
 }

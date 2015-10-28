@@ -8,6 +8,8 @@ void Parameters::configure_parameter_handler
   parameter_handler.enter_subsection("DNS");
   {
     parameter_handler.declare_entry
+      ("dimension", "2", Patterns::Integer(2), "Dimension (2 or 3) of the data.");
+    parameter_handler.declare_entry
       ("fe_order", "2", Patterns::Integer(1), "Order of the finite element.");
     parameter_handler.declare_entry
       ("renumber", "false", Patterns::Bool(), "Whether or not to renumber "
@@ -49,6 +51,7 @@ void Parameters::read_data(const std::string &file_name)
 
   parameter_handler.enter_subsection("DNS");
   {
+    dimension = parameter_handler.get_integer("dimension");
     fe_order = parameter_handler.get_integer("fe_order");
     renumber = parameter_handler.get_bool("renumber");
     snapshot_glob = parameter_handler.get("snapshot_glob");

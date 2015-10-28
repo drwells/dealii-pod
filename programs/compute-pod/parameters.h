@@ -25,6 +25,7 @@ using namespace dealii;
 class Parameters
 {
 public:
+  int dimension;
   int fe_order;
   bool renumber;
   std::string snapshot_glob;
