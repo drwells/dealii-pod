@@ -1,6 +1,5 @@
 #include <algorithm>
-#include <string>
-#include <vector>
+
 #include <glob.h>
 
 #include <deal.II-pod/extra/extra.h>
@@ -11,9 +10,7 @@ namespace POD
 
   namespace extra
   {
-    std::vector<std::string>
-    expand_file_names
-    (const std::string &file_name_glob)
+    std::vector<std::string> expand_file_names(const std::string &file_name_glob)
     {
       std::vector<std::string> file_names;
       glob_t glob_result;
