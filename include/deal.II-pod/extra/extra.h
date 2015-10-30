@@ -25,5 +25,8 @@ namespace POD
     std::vector<std::string>
     expand_file_names
     (const std::string &file_name_glob);
+    bool are_equal(const FullMatrix<double> &left,
+                   const FullMatrix<double> &right,
+                   const double              tolerance);
   }
 }

@@ -61,6 +61,14 @@ namespace POD
            "between which output is saved.");
       }
       parameter_handler.leave_subsection();
+
+      parameter_handler.enter_subsection("Testing");
+      {
+        parameter_handler.declare_entry
+          ("test_output", "false", Patterns::Bool(), "Whether or not to compare "
+           "the output against a known output.");
+      }
+      parameter_handler.leave_subsection();
     }
 
     void Parameters::read_data(const std::string &file_name)
@@ -134,6 +142,12 @@ namespace POD
       parameter_handler.enter_subsection("Output Configuration");
       {
         output_interval = parameter_handler.get_integer("output_interval");
+      }
+      parameter_handler.leave_subsection();
+
+      parameter_handler.enter_subsection("Testing");
+      {
+        test_output = parameter_handler.get_bool("test_output");
       }
       parameter_handler.leave_subsection();
     }

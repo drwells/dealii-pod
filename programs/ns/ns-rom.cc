@@ -25,6 +25,7 @@
 #include <utility>
 #include <vector>
 
+#include <deal.II-pod/extra/extra.h>
 #include <deal.II-pod/h5/h5.h>
 #include <deal.II-pod/ode/ode.h>
 #include <deal.II-pod/ns/filter.h>
@@ -223,6 +224,15 @@ namespace NavierStokes
       }
 
     H5::save_full_matrix(outname, solutions);
+    if (parameters.test_output)
+      {
+        FullMatrix<double> test_output;
+        H5::load_full_matrix("test-output.h5", test_output);
+        bool are_equal = extra::are_equal(solutions, test_output, 1e-12);
+
+        AssertThrow(are_equal, ExcMessage("Test failed! The current solution and"
+                                          " the known output are not equal."));
+      }
   }
 
 

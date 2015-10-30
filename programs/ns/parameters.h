@@ -57,6 +57,8 @@ namespace POD
 
       int output_interval;
 
+      bool test_output;
+
       void read_data(const std::string &file_name);
     private:
       void configure_parameter_handler(ParameterHandler &parameter_handler) const;
