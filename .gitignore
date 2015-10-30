@@ -12,7 +12,7 @@ Makefile
 */*/*kdev4
 */CMakeFiles/*
 */*/CMakeFiles/*
-
+Testing/
 
 # binary files
 *.png
