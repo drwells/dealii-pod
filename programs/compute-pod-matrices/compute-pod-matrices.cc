@@ -322,7 +322,7 @@ int main(int argc, char **argv)
   (argc, argv, numbers::invalid_unsigned_int);
   {
     ComputePOD::Parameters parameters;
-    parameters.read_data("parameter-file.prm");
+    parameters.read_data("parameters.prm");
     if (parameters.dimension == 2)
       {
         ComputePOD::ComputePODMatrices<2> pod_matrices(parameters);

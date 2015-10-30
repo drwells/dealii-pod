@@ -54,7 +54,7 @@ int main(int argc, char **argv)
   Utilities::MPI::MPI_InitFinalize mpi_initialization(argc, argv, 1);
 
   Parameters parameters;
-  parameters.read_data("parameter-file.prm");
+  parameters.read_data("parameters.prm");
 
   const FE_Q<dim> fe(parameters.fe_order);
   Triangulation<dim> triangulation;

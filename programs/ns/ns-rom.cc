@@ -246,7 +246,7 @@ int main(int argc, char **argv)
         deallog.depth_console(0);
 
         POD::NavierStokes::Parameters parameters;
-        parameters.read_data("parameter-file.prm");
+        parameters.read_data("parameters.prm");
         ROM<3> nse_solver(parameters);
         nse_solver.run();
       }

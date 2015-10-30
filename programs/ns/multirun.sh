@@ -17,10 +17,10 @@ function run_filter_radii()
     local LINE_LEFT_PART='set filter_radius ='
     copy_files
 
-    perl -pi -e "s/(set filter_model =).*/\1 Differential/" parameter-file.prm
+    perl -pi -e "s/(set filter_model =).*/\1 Differential/" parameters.prm
     for FILTER_VALUE in $(seq 0 100 | awk '{print $1/100}')
     do
-        perl -pi -e "s/($LINE_LEFT_PART) .*/\1 $FILTER_VALUE/" parameter-file.prm
+        perl -pi -e "s/($LINE_LEFT_PART) .*/\1 $FILTER_VALUE/" parameters.prm
         make release 1>/dev/null 2>/dev/null && make run 1>/dev/null
         printf "finished filter radius %s\n" $FILTER_VALUE
     done
@@ -32,10 +32,10 @@ function run_filter_cutoff_n()
     local LINE_LEFT_PART='set cutoff_n ='
     copy_files
 
-    perl -pi -e "s/(set filter_model =).*/\1 L2Projection/" parameter-file.prm
+    perl -pi -e "s/(set filter_model =).*/\1 L2Projection/" parameters.prm
     for CUTOFF_N in $(seq 0 $N_POD_VECTORS)
     do
-        perl -pi -e "s/($LINE_LEFT_PART) .*/\1 $CUTOFF_N/" parameter-file.prm
+        perl -pi -e "s/($LINE_LEFT_PART) .*/\1 $CUTOFF_N/" parameters.prm
         make release 1>/dev/null 2>/dev/null && make run 1>/dev/null
         printf "finished cutoff number %s\n" $CUTOFF_N
     done
@@ -48,10 +48,10 @@ function run_hybrid()
     local LINE_LEFT_PART='set cutoff_n ='
     copy_files
 
-    perl -pi -e "s/(set filter_model =).*/\1 L2Projection/" parameter-file.prm
+    perl -pi -e "s/(set filter_model =).*/\1 L2Projection/" parameters.prm
     for CUTOFF_N in $(seq 0 $N_POD_VECTORS)
     do
-        perl -pi -e "s/($LINE_LEFT_PART) .*/\1 $CUTOFF_N/" parameter-file.prm
+        perl -pi -e "s/($LINE_LEFT_PART) .*/\1 $CUTOFF_N/" parameters.prm
         make release 1>/dev/null 2>/dev/null && make run 1>/dev/null
         printf "finished cutoff number %s\n" $CUTOFF_N
     done
@@ -62,12 +62,12 @@ function run_post_filter()
     local N_POD_VECTORS=$1
     local LINE_LEFT_PART='set filter_radius ='
 
-    perl -pi -e "s/(set filter_model =).*/\1 PostFilter/" parameter-file.prm
+    perl -pi -e "s/(set filter_model =).*/\1 PostFilter/" parameters.prm
 
     copy_files
     for FILTER_VALUE in $(seq 0 100 | awk '{print $1/100}')
     do
-        perl -pi -e "s/($LINE_LEFT_PART) .*/\1 $FILTER_VALUE/" parameter-file.prm
+        perl -pi -e "s/($LINE_LEFT_PART) .*/\1 $FILTER_VALUE/" parameters.prm
         make release 1>/dev/null 2>/dev/null && make run
         printf "finished filter radius %s\n" $FILTER_VALUE
     done

@@ -61,11 +61,11 @@ def main():
                 processes = list()
                 for lavrentiev_parameter in lavrentiev_chunk:
                     directory = tempfile.mkdtemp("-pod-ad-batch")
-                    parameter_handler = ParameterHandler("parameter-file.prm")
+                    parameter_handler = ParameterHandler("parameters.prm")
                     parameter_handler.add_modified_parameter("noise_multiplier", noise_multiplier)
                     parameter_handler.add_modified_parameter("lavrentiev_parameter", lavrentiev_parameter)
                     parameter_handler.add_modified_parameter("filter_radius", filter_radius)
-                    parameter_handler.print_with_modifications(directory + os.sep + "parameter-file.prm")
+                    parameter_handler.print_with_modifications(directory + os.sep + "parameters.prm")
                     for link_name in link_names:
                         os.symlink(os.getcwd() + os.sep + link_name, directory + os.sep + link_name)
                     for copy_name in copy_names:
