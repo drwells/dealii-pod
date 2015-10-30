@@ -15,16 +15,19 @@
  * Author: David Wells, Virginia Tech, 2014-2015;
  *         David Wells, Rensselaer Polytechnic Institute, 2015
  */
+#include <deal.II/lac/full_matrix.h>
+
 #include <string>
 #include <vector>
 
 namespace POD
 {
+  using namespace dealii;
+
   namespace extra
   {
-    std::vector<std::string>
-    expand_file_names
-    (const std::string &file_name_glob);
+    std::vector<std::string> expand_file_names(const std::string &file_name_glob);
+
     bool are_equal(const FullMatrix<double> &left,
                    const FullMatrix<double> &right,
                    const double              tolerance);
