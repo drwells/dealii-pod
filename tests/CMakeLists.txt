@@ -1,1 +1,2 @@
 ADD_SUBDIRECTORY("nse-2d")
+ADD_SUBDIRECTORY("pod-basis")

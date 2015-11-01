@@ -1,5 +1,5 @@
 #include <deal.II/base/quadrature_lib.h>
-#include <deal.II/base/tensor_base.h>
+#include <deal.II/base/tensor.h>
 
 #include <deal.II/dofs/dof_tools.h>
 
@@ -8,7 +8,7 @@
 
 #include <deal.II/grid/grid_generator.h>
 
-#include <deal.II/lac/compressed_sparsity_pattern.h>
+#include <deal.II/lac/dynamic_sparsity_pattern.h>
 #include <deal.II/lac/block_vector.h>
 #include <deal.II/lac/full_matrix.h>
 #include <deal.II/lac/sparse_matrix.h>
@@ -16,13 +16,13 @@
 
 #include <deal.II/numerics/matrix_tools.h>
 
-#include <array>
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <iostream>
 #include <vector>
 
-#include "../ns.h"
+#include <deal.II-pod/ns/ns.h>
 
 using namespace dealii;
 namespace POD
@@ -312,9 +312,9 @@ int main(int argc, char **argv)
 
   SparsityPattern sparsity_pattern;
   {
-    CompressedSparsityPattern c_sparsity(dof_handler.n_dofs());
-    DoFTools::make_sparsity_pattern(dof_handler, c_sparsity);
-    sparsity_pattern.copy_from(c_sparsity);
+    DynamicSparsityPattern d_sparsity(dof_handler.n_dofs());
+    DoFTools::make_sparsity_pattern(dof_handler, d_sparsity);
+    sparsity_pattern.copy_from(d_sparsity);
   }
 
   test_nonlinearity(dof_handler, pod_vectors);
