@@ -1,0 +1,8 @@
+ADD_SUBDIRECTORY("compare-pod-and-fe-projections")
+ADD_SUBDIRECTORY("compute-pod")
+ADD_SUBDIRECTORY("compute-pod-matrices")
+ADD_SUBDIRECTORY("ns")
+ADD_SUBDIRECTORY("plot-y-velocity")
+ADD_SUBDIRECTORY("plot-pod-snapshots")
+ADD_SUBDIRECTORY("pod-projection-error")
+ADD_SUBDIRECTORY("project")
