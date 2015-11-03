@@ -16,6 +16,7 @@
  *         David Wells, Rensselaer Polytechnic Institute, 2015
  */
 #include <deal.II/lac/full_matrix.h>
+#include <deal.II/lac/block_vector.h>
 
 #include <string>
 #include <vector>
@@ -28,8 +29,14 @@ namespace POD
   {
     std::vector<std::string> expand_file_names(const std::string &file_name_glob);
 
+
     bool are_equal(const FullMatrix<double> &left,
                    const FullMatrix<double> &right,
                    const double              tolerance);
+
+
+    bool are_equal(const BlockVector<double> &left,
+                   const BlockVector<double> &right,
+                   const double               tolerance);
   }
 }

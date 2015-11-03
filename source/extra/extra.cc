@@ -48,5 +48,37 @@ namespace POD
 
       return true;
     }
+
+    bool are_equal(const BlockVector<double> &left,
+                   const BlockVector<double> &right,
+                   const double               tolerance)
+    {
+      if (left.n_blocks() != right.n_blocks())
+        {
+          return false;
+        }
+      for (unsigned int i = 0; i < left.n_blocks(); ++i)
+        {
+          if (left.block(i).size() != right.block(i).size())
+            {
+              return false;
+            }
+        }
+
+      for (unsigned int i = 0; i < left.n_blocks(); ++i)
+        {
+          for (unsigned int j = 0; j < left.block(i).size(); ++j)
+            {
+              if (std::abs(left.block(i)[j] - right.block(i)[j]) > tolerance)
+                {
+                  return false;
+                }
+            }
+        }
+
+      return true;
+    }
+
+
   }
 }
