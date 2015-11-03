@@ -223,7 +223,6 @@ namespace NavierStokes
         time += parameters.time_step;
       }
 
-    H5::save_full_matrix(outname, solutions);
     if (parameters.test_output)
       {
         FullMatrix<double> test_output;
@@ -232,6 +231,10 @@ namespace NavierStokes
 
         AssertThrow(are_equal, ExcMessage("Test failed! The current solution and"
                                           " the known output are not equal."));
+      }
+    else
+      {
+        H5::save_full_matrix(outname, solutions);
       }
   }
 
