@@ -38,5 +38,13 @@ namespace POD
     bool are_equal(const BlockVector<double> &left,
                    const BlockVector<double> &right,
                    const double               tolerance);
+
+    class TemporaryFileName
+    {
+    public:
+      TemporaryFileName();
+      ~TemporaryFileName();
+      std::string name;
+    };
   }
 }

@@ -1,5 +1,6 @@
 #include <algorithm>
 
+#include <cstdio>
 #include <glob.h>
 
 #include <deal.II-pod/extra/extra.h>
@@ -80,5 +81,16 @@ namespace POD
     }
 
 
+    TemporaryFileName::TemporaryFileName()
+    {
+      char c_name[L_tmpnam];
+      tmpnam(c_name);
+      name = c_name;
+    }
+
+    TemporaryFileName::~TemporaryFileName()
+    {
+      std::remove(name.c_str());
+    }
   }
 }
