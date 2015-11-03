@@ -19,7 +19,7 @@
 #include <deal.II/numerics/matrix_tools.h>
 #include <deal.II/numerics/data_out.h>
 
-#include <deal.II/bundled/boost/archive/text_iarchive.hpp>
+#include <boost/archive/text_iarchive.hpp>
 
 #include <algorithm>
 #include <cmath>

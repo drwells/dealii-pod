@@ -19,7 +19,7 @@
 #include <deal.II/lac/vector.h>
 #include <deal.II/lac/full_matrix.h>
 
-#include <deal.II/bundled/boost/math/special_functions/round.hpp>
+#include <boost/math/special_functions/round.hpp>
 
 #include <memory>
 #include <utility>

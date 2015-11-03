@@ -28,7 +28,7 @@
 #include <deal.II/numerics/data_out.h>
 #include <deal.II/numerics/matrix_tools.h>
 
-#include <deal.II/bundled/boost/archive/text_iarchive.hpp>
+#include <boost/archive/text_iarchive.hpp>
 // needed to get around the "save the dof handler issue"
 #include <deal.II/dofs/dof_faces.h>
 #include <deal.II/dofs/dof_levels.h>

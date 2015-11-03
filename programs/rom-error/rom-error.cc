@@ -11,7 +11,7 @@
 
 #include <deal.II/numerics/matrix_tools.h>
 
-#include <deal.II/bundled/boost/math/special_functions/round.hpp>
+#include <boost/math/special_functions/round.hpp>
 
 #include <cmath>
 #include <iostream>
