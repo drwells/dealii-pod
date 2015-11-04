@@ -96,24 +96,22 @@ namespace NavierStokes
     H5::load_vector("rom-mean-contribution.h5", mean_contribution_vector);
     H5::load_vector("rom-initial-condition.h5", solution);
 
-    // TODO add resizing code here so that we can trim down these matrices, if
-    // requested
     if (n_pod_dofs < mass_matrix.m())
       {
-        extra::resize_square_matrix(mass_matrix, n_pod_dofs);
-        extra::resize_square_matrix(boundary_matrix, n_pod_dofs);
-        extra::resize_square_matrix(laplace_matrix, n_pod_dofs);
-        extra::resize_square_matrix(advection_matrix, n_pod_dofs);
-        extra::resize_square_matrix(gradient_matrix, n_pod_dofs);
+        extra::resize(mass_matrix, n_pod_dofs);
+        extra::resize(boundary_matrix, n_pod_dofs);
+        extra::resize(laplace_matrix, n_pod_dofs);
+        extra::resize(advection_matrix, n_pod_dofs);
+        extra::resize(gradient_matrix, n_pod_dofs);
 
         nonlinear_operator.resize(n_pod_dofs);
         for (unsigned int i = 0; i < n_pod_dofs; ++i)
           {
-            extra::resize_square_matrix(nonlinear_operator[i], n_pod_dofs);
+            extra::resize(nonlinear_operator[i], n_pod_dofs);
           }
 
-        extra::resize_vector(mean_contribution_vector, n_pod_dofs);
-        extra::resize_vector(solution, n_pod_dofs);
+        extra::resize(mean_contribution_vector, n_pod_dofs);
+        extra::resize(solution, n_pod_dofs);
       }
 
     // The joint convection matrix is necessary for the L2 Projection model (all

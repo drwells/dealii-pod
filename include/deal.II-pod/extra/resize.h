@@ -27,13 +27,13 @@ namespace POD
     /*
      * Resize a square matrix to be new_size x new_size.
      */
-    void resize_square_matrix(FullMatrix<double> &matrix,
-                              const unsigned int new_size);
+    void resize(FullMatrix<double> &matrix,
+                const unsigned int new_size);
 
     /*
      * Resize a vector to have length new_size.
      */
-    void resize_vector(Vector<double> &vector,
-                       const unsigned int new_size);
+    void resize(Vector<double> &vector,
+                const unsigned int new_size);
   }
 }
