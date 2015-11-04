@@ -14,8 +14,6 @@
  * Author: David Wells, Virginia Tech, 2014
  *         David Wells, Rensselaer Polytechnic Institute, 2015
  */
-#include <deal.II/base/table_indices.h>
-
 #include <deal.II/lac/vector.h>
 #include <deal.II/lac/full_matrix.h>
 
@@ -26,6 +24,8 @@
 #include <vector>
 
 #include <deal.II-pod/extra/extra.h>
+#include <deal.II-pod/extra/resize.h>
+
 #include <deal.II-pod/h5/h5.h>
 #include <deal.II-pod/ode/ode.h>
 #include <deal.II-pod/ns/filter.h>
@@ -40,41 +40,6 @@ namespace NavierStokes
 {
   using namespace dealii;
   using namespace POD;
-
-  void resize_square_matrix(FullMatrix<double> &matrix,
-                            const unsigned int new_size)
-  {
-    FullMatrix<double> temp;
-    temp = matrix;
-
-    // free all memory, then reallocate
-    TableIndices<2> empty_table(0, 0);
-    matrix.reinit(empty_table);
-    TableIndices<2> indices(new_size, new_size);
-    matrix.reinit(indices);
-    for (unsigned int i = 0; i < new_size; ++i)
-      {
-        for (unsigned int j = 0; j < new_size; ++j)
-          {
-            matrix(i, j) = temp(i, j);
-          }
-      }
-  }
-
-  void resize_vector(Vector<double> &vector,
-                     const unsigned int new_size)
-  {
-    Vector<double> temp;
-    temp = vector;
-
-    // free all memory, then reallocate
-    vector.reinit(0);
-    vector.reinit(new_size);
-    for (unsigned int i = 0; i < new_size; ++i)
-      {
-        vector[i] = temp[i];
-      }
-  }
 
   template<int dim>
   class ROM
@@ -135,20 +100,20 @@ namespace NavierStokes
     // requested
     if (n_pod_dofs < mass_matrix.m())
       {
-        resize_square_matrix(mass_matrix, n_pod_dofs);
-        resize_square_matrix(boundary_matrix, n_pod_dofs);
-        resize_square_matrix(laplace_matrix, n_pod_dofs);
-        resize_square_matrix(advection_matrix, n_pod_dofs);
-        resize_square_matrix(gradient_matrix, n_pod_dofs);
+        extra::resize_square_matrix(mass_matrix, n_pod_dofs);
+        extra::resize_square_matrix(boundary_matrix, n_pod_dofs);
+        extra::resize_square_matrix(laplace_matrix, n_pod_dofs);
+        extra::resize_square_matrix(advection_matrix, n_pod_dofs);
+        extra::resize_square_matrix(gradient_matrix, n_pod_dofs);
 
         nonlinear_operator.resize(n_pod_dofs);
         for (unsigned int i = 0; i < n_pod_dofs; ++i)
           {
-            resize_square_matrix(nonlinear_operator[i], n_pod_dofs);
+            extra::resize_square_matrix(nonlinear_operator[i], n_pod_dofs);
           }
 
-        resize_vector(mean_contribution_vector, n_pod_dofs);
-        resize_vector(solution, n_pod_dofs);
+        extra::resize_vector(mean_contribution_vector, n_pod_dofs);
+        extra::resize_vector(solution, n_pod_dofs);
       }
 
     // The joint convection matrix is necessary for the L2 Projection model (all
