@@ -1,3 +1,8 @@
+# attempt to ignore executables: ignore everything, then un-ignore things with
+# dots
+*
+!*.*
+
 # output and text files
 *.vtk
 *.txt
@@ -20,13 +25,3 @@ Testing/
 *.o
 *.h5
 *.a
-
-# applications
-programs/compare-pod-and-fe-projections/compare
-programs/compute-pod/compute-pod
-programs/compute-pod-matrices/compute-pod-matrices
-programs/ns/ns-rom
-programs/plot-y-velocity/plot-y-velocity
-programs/pod-projection-error/error
-programs/project/project
-programs/plot-pod-snapshots/plot-pod-snapshots
