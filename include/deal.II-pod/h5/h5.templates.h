@@ -160,6 +160,7 @@ namespace POD
       hid_t datatype = H5Dget_type(dataset);
       hid_t dataspace = H5Dget_space(dataset);
       int rank = H5Sget_simple_extent_ndims(dataspace);
+      (void)rank;
       Assert(rank == 1, StandardExceptions::ExcInternalError());
 
       // Since rank must be 1...
@@ -216,6 +217,7 @@ namespace POD
           hid_t datatype = H5Dget_type(dataset);
           hid_t dataspace = H5Dget_space(dataset);
           int rank = H5Sget_simple_extent_ndims(dataspace);
+          (void)rank;
           Assert(rank == 2, StandardExceptions::ExcInternalError());
 
           hsize_t dims[2];
