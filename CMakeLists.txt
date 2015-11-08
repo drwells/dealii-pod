@@ -39,6 +39,7 @@ INCLUDE_DIRECTORIES("include")
 
 # define executables here so that the test suite can find them
 SET(NS_ROM_TARGET ns-rom)
+SET(COMPUTE_POD_MATRICES_TARGET compute-pod-matrices)
 
 ADD_SUBDIRECTORY("source")
 ADD_SUBDIRECTORY("programs")

@@ -38,6 +38,14 @@ namespace ComputePOD
          " filter.");
     }
     parameter_handler.leave_subsection();
+
+    parameter_handler.enter_subsection("Testing");
+    {
+      parameter_handler.declare_entry
+        ("test_output", "false", Patterns::Bool(), "Whether or not to compare "
+         "the output against a known output.");
+    }
+    parameter_handler.leave_subsection();
   }
 
   void Parameters::read_data(const std::string &file_name)
@@ -65,6 +73,12 @@ namespace ComputePOD
       center_trajectory = parameter_handler.get_bool("center_trajectory");
       use_leray_regularization =
         parameter_handler.get_bool("use_leray_regularization");
+    }
+    parameter_handler.leave_subsection();
+
+    parameter_handler.enter_subsection("Testing");
+    {
+      test_output = parameter_handler.get_bool("test_output");
     }
     parameter_handler.leave_subsection();
   }

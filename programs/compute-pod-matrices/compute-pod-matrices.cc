@@ -285,14 +285,54 @@ namespace ComputePOD
   void
   ComputePODMatrices<dim>::save_rom_components()
   {
-    H5::save_full_matrix("rom-mass-matrix.h5", mass_matrix);
-    H5::save_full_matrix("rom-laplace-matrix.h5", laplace_matrix);
-    H5::save_full_matrix("rom-boundary-matrix.h5", boundary_matrix);
-    H5::save_full_matrix("rom-gradient-matrix.h5", gradient_matrix);
-    H5::save_full_matrix("rom-advection-matrix.h5", advection_matrix);
-    H5::save_vector("rom-mean-contribution.h5", mean_contribution);
-    H5::save_vector("rom-initial-condition.h5", initial);
-    H5::save_full_matrices("rom-nonlinearity.h5", nonlinearity);
+    if (parameters.test_output)
+      {
+#define TEST_MATRIX(EXP)                                                                              \
+        {                                                                                             \
+          FullMatrix<double> test_##EXP;                                                              \
+          H5::load_full_matrix("rom-" #EXP "-matrix.h5", test_##EXP);                                 \
+          const bool are_equal = extra::are_equal(EXP##_matrix, test_##EXP, 1e-14);                   \
+          AssertThrow(are_equal, ExcMessage("Test failed! The " #EXP " matrices are not the same.")); \
+        }
+
+        TEST_MATRIX(mass)
+        TEST_MATRIX(laplace)
+        TEST_MATRIX(boundary)
+        TEST_MATRIX(gradient)
+        TEST_MATRIX(advection)
+#undef TEST_MATRIX
+#define TEST_VECTOR(FILE_NAME, VECTOR_NAME)                                                                  \
+        {                                                                                                    \
+          Vector<double> test_##VECTOR_NAME;                                                                 \
+          H5::load_vector(#FILE_NAME, test_##VECTOR_NAME);                                                   \
+          const bool are_equal = extra::are_equal(VECTOR_NAME, test_##VECTOR_NAME, 1e-14);                   \
+          AssertThrow(are_equal, ExcMessage("Test failed! The " #VECTOR_NAME " vectors are not the same.")); \
+        }
+
+        TEST_VECTOR(rom-initial-condition.h5, initial)
+        TEST_VECTOR(rom-mean-contribution.h5, mean_contribution)
+#undef TEST_VECTOR
+
+        std::vector<FullMatrix<double>> test_nonlinearity;
+        H5::load_full_matrices("rom-nonlinearity.h5", test_nonlinearity);
+
+          for (unsigned int i = 0; i < n_pod_dofs; ++i)
+            {
+              AssertThrow(extra::are_equal(test_nonlinearity[i], nonlinearity[i], 1e-14),
+                          ExcMessage("Test failed! The nonlinearity is not the same as the saved version."));
+            }
+      }
+    else
+      {
+        H5::save_full_matrix("rom-mass-matrix.h5", mass_matrix);
+        H5::save_full_matrix("rom-laplace-matrix.h5", laplace_matrix);
+        H5::save_full_matrix("rom-boundary-matrix.h5", boundary_matrix);
+        H5::save_full_matrix("rom-gradient-matrix.h5", gradient_matrix);
+        H5::save_full_matrix("rom-advection-matrix.h5", advection_matrix);
+        H5::save_vector("rom-mean-contribution.h5", mean_contribution);
+        H5::save_vector("rom-initial-condition.h5", initial);
+        H5::save_full_matrices("rom-nonlinearity.h5", nonlinearity);
+      }
   }
 
 

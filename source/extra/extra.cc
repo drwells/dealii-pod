@@ -85,6 +85,27 @@ namespace POD
 
 
 
+    bool are_equal(const Vector<double> &left,
+                   const Vector<double> &right,
+                   const double          tolerance)
+    {
+      if (left.size() != right.size())
+        {
+          return false;
+        }
+
+      for (unsigned int i = 0; i < left.size(); ++i)
+        {
+          if (std::abs(left[i] - right[i]) > tolerance)
+            {
+              return false;
+            }
+        }
+
+      return true;
+    }
+
+
     TemporaryFileName::TemporaryFileName()
     {
       char c_name[L_tmpnam];

@@ -4,11 +4,15 @@ subsection DNS
   set renumber = false
   set triangulation_file_name = triangulation.txt
   set reynolds_n = 100
-  set outflow_label = 1
+  set outflow_label = 3
 end
 
 subsection ROM
   set center_trajectory = true
   set use_leray_regularization = false
   set filter_radius = 0.00
+end
+
+subsection Testing
+  set test_output = false
 end

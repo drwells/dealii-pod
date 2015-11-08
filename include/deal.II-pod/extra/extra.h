@@ -41,6 +41,11 @@ namespace POD
                    const double              tolerance);
 
 
+    bool are_equal(const Vector<double> &left,
+                   const Vector<double> &right,
+                   const double          tolerance);
+
+
     class TemporaryFileName
     {
     public:

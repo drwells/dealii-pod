@@ -40,6 +40,8 @@ namespace ComputePOD
     bool use_leray_regularization;
     double filter_radius;
 
+    bool test_output;
+
     void read_data(const std::string &file_name);
   private:
     void configure_parameter_handler(ParameterHandler &file_name) const;
