@@ -204,7 +204,7 @@ namespace ComputePOD
         full_laplace_matrix.vmult(temp, mean_vector->block(dim_n));
         for (unsigned int pod_vector_n = 0; pod_vector_n < n_pod_dofs; ++pod_vector_n)
           {
-            mean_contribution(pod_vector_n) -= 1.0/parameters.reynolds_n*
+            mean_contribution[pod_vector_n] -= 1.0/parameters.reynolds_n*
               (temp * pod_vectors->at(pod_vector_n).block(dim_n));
           }
       }
@@ -231,7 +231,7 @@ namespace ComputePOD
     full_boundary_matrix.vmult(temp, mean_vector->block(0));
     for (unsigned int pod_vector_n = 0; pod_vector_n < n_pod_dofs; ++pod_vector_n)
       {
-        mean_contribution(pod_vector_n) += 1.0/parameters.reynolds_n
+        mean_contribution[pod_vector_n] += 1.0/parameters.reynolds_n
           *(temp * pod_vectors->at(pod_vector_n).block(0));
       }
   }
