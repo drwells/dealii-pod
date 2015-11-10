@@ -28,6 +28,7 @@ end
 
 subsection Output Configuration
   set output_interval = 100
+end
 
 subsection Testing
   set test_output = false
