@@ -38,6 +38,7 @@ namespace ComputePOD
 
     bool center_trajectory;
     bool use_leray_regularization;
+    unsigned int n_pod_vectors;
     double filter_radius;
 
     bool test_output;

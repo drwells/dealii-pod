@@ -66,7 +66,6 @@ namespace ComputePOD
     std::shared_ptr<std::vector<BlockVector<double>>> pod_vectors;
     std::shared_ptr<BlockVector<double>> mean_vector;
     unsigned int n_dofs;
-    unsigned int n_pod_dofs;
 
     FullMatrix<double> mass_matrix;
     FullMatrix<double> laplace_matrix;
@@ -111,10 +110,13 @@ namespace ComputePOD
     // TODO replace hardcoded strings with parameter values
     POD::load_pod_basis("pod-vector*.h5", "mean-vector.h5", *mean_vector,
                         *pod_vectors);
+    AssertThrow(pod_vectors->size() >= parameters.n_pod_vectors,
+                ExcMessage("The number of specified POD vectors exceeds the "
+                           "number of POD vectors found in the current directory."));
     n_dofs = pod_vectors->at(0).block(0).size();
-    n_pod_dofs = pod_vectors->size();
+    pod_vectors->resize(parameters.n_pod_vectors);
 
-    mean_contribution.reinit(n_pod_dofs);
+    mean_contribution.reinit(pod_vectors->size());
 
     // This is an abuse of notation to save duplication: if the POD vectors are
     // not filtered, then simply assign the filtered pod vectors pointer to
@@ -141,8 +143,8 @@ namespace ComputePOD
         // TODO support not filtering the mean
         filter.apply(*filtered_mean_vector, *mean_vector);
 
-        filtered_pod_vectors->resize(n_pod_dofs);
-        for (unsigned int pod_vector_n = 0; pod_vector_n < n_pod_dofs;
+        filtered_pod_vectors->resize(pod_vectors->size());
+        for (unsigned int pod_vector_n = 0; pod_vector_n < pod_vectors->size();
              ++pod_vector_n)
           {
             filter.apply(filtered_pod_vectors->at(pod_vector_n),
@@ -171,13 +173,13 @@ namespace ComputePOD
     BlockVector<double> centered_initial;
     // TODO replace hardcoded string with a parameter value
     H5::load_block_vector("initial.h5", centered_initial);
-    initial.reinit(n_pod_dofs);
+    initial.reinit(pod_vectors->size());
     centered_initial -= *mean_vector;
     for (unsigned int dim_n = 0; dim_n < dim; ++dim_n)
       {
         Vector<double> temp(n_dofs);
         full_mass_matrix.vmult(temp, centered_initial.block(dim_n));
-        for (unsigned int pod_vector_n = 0; pod_vector_n < n_pod_dofs;
+        for (unsigned int pod_vector_n = 0; pod_vector_n < pod_vectors->size();
              ++pod_vector_n)
           {
             initial[pod_vector_n] +=
@@ -202,7 +204,7 @@ namespace ComputePOD
       {
         Vector<double> temp(n_dofs);
         full_laplace_matrix.vmult(temp, mean_vector->block(dim_n));
-        for (unsigned int pod_vector_n = 0; pod_vector_n < n_pod_dofs; ++pod_vector_n)
+        for (unsigned int pod_vector_n = 0; pod_vector_n < pod_vectors->size(); ++pod_vector_n)
           {
             mean_contribution[pod_vector_n] -= 1.0/parameters.reynolds_n*
               (temp * pod_vectors->at(pod_vector_n).block(dim_n));
@@ -229,7 +231,7 @@ namespace ComputePOD
 
     Vector<double> temp(n_dofs);
     full_boundary_matrix.vmult(temp, mean_vector->block(0));
-    for (unsigned int pod_vector_n = 0; pod_vector_n < n_pod_dofs; ++pod_vector_n)
+    for (unsigned int pod_vector_n = 0; pod_vector_n < pod_vectors->size(); ++pod_vector_n)
       {
         mean_contribution[pod_vector_n] += 1.0/parameters.reynolds_n
           *(temp * pod_vectors->at(pod_vector_n).block(0));
@@ -268,7 +270,7 @@ namespace ComputePOD
   {
     QGauss<dim> higher_quadrature(2*(parameters.fe_order + 1));
 
-    Vector<double> nonlinear_contribution(n_pod_dofs);
+    Vector<double> nonlinear_contribution(pod_vectors->size());
     POD::NavierStokes::create_nonlinear_centered_contribution
       (dof_handler, sparsity_pattern, higher_quadrature, *mean_vector,
        *mean_vector, *pod_vectors, nonlinear_contribution);
@@ -318,7 +320,7 @@ namespace ComputePOD
         std::vector<FullMatrix<double>> test_nonlinearity;
         H5::load_full_matrices("rom-nonlinearity.h5", test_nonlinearity);
 
-          for (unsigned int i = 0; i < n_pod_dofs; ++i)
+          for (unsigned int i = 0; i < pod_vectors->size(); ++i)
             {
               AssertThrow(extra::are_equal(test_nonlinearity[i], nonlinearity[i], 1e-14),
                           ExcMessage("Test failed! The nonlinearity is not the same as "

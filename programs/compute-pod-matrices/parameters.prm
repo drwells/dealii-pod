@@ -10,6 +10,7 @@ end
 subsection ROM
   set center_trajectory = true
   set use_leray_regularization = false
+  set n_pod_vectors = 20
   set filter_radius = 0.00
 end
 

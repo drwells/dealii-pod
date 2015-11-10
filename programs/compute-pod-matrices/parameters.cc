@@ -34,6 +34,8 @@ namespace ComputePOD
          "to assemble the nonlinearity with filtered POD vectors in the "
          "advective term.");
       parameter_handler.declare_entry
+        ("n_pod_vectors", "1", Patterns::Integer(), "Number of POD vectors to use.");
+      parameter_handler.declare_entry
         ("filter_radius", "0.0", Patterns::Double(), "Radius of the differential"
          " filter.");
     }
@@ -73,6 +75,7 @@ namespace ComputePOD
       center_trajectory = parameter_handler.get_bool("center_trajectory");
       use_leray_regularization =
         parameter_handler.get_bool("use_leray_regularization");
+      n_pod_vectors = parameter_handler.get_integer("n_pod_vectors");
     }
     parameter_handler.leave_subsection();
 
