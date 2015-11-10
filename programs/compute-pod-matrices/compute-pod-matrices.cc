@@ -287,12 +287,13 @@ namespace ComputePOD
   {
     if (parameters.test_output)
       {
-#define TEST_MATRIX(EXP)                                                                              \
-        {                                                                                             \
-          FullMatrix<double> test_##EXP;                                                              \
-          H5::load_full_matrix("rom-" #EXP "-matrix.h5", test_##EXP);                                 \
-          const bool are_equal = extra::are_equal(EXP##_matrix, test_##EXP, 1e-14);                   \
-          AssertThrow(are_equal, ExcMessage("Test failed! The " #EXP " matrices are not the same.")); \
+#define TEST_MATRIX(EXP)                                                            \
+        {                                                                           \
+          FullMatrix<double> test_##EXP;                                            \
+          H5::load_full_matrix("rom-" #EXP "-matrix.h5", test_##EXP);               \
+          const bool are_equal = extra::are_equal(EXP##_matrix, test_##EXP, 1e-14); \
+          AssertThrow(are_equal, ExcMessage("Test failed! The " #EXP                \
+                                            " matrices are not the same."));        \
         }
 
         TEST_MATRIX(mass)
@@ -301,12 +302,13 @@ namespace ComputePOD
         TEST_MATRIX(gradient)
         TEST_MATRIX(advection)
 #undef TEST_MATRIX
-#define TEST_VECTOR(FILE_NAME, VECTOR_NAME)                                                                  \
-        {                                                                                                    \
-          Vector<double> test_##VECTOR_NAME;                                                                 \
-          H5::load_vector(#FILE_NAME, test_##VECTOR_NAME);                                                   \
-          const bool are_equal = extra::are_equal(VECTOR_NAME, test_##VECTOR_NAME, 1e-14);                   \
-          AssertThrow(are_equal, ExcMessage("Test failed! The " #VECTOR_NAME " vectors are not the same.")); \
+#define TEST_VECTOR(FILE_NAME, VECTOR_NAME)                                                \
+        {                                                                                  \
+          Vector<double> test_##VECTOR_NAME;                                               \
+          H5::load_vector(#FILE_NAME, test_##VECTOR_NAME);                                 \
+          const bool are_equal = extra::are_equal(VECTOR_NAME, test_##VECTOR_NAME, 1e-14); \
+          AssertThrow(are_equal, ExcMessage("Test failed! The " #VECTOR_NAME               \
+          " vectors are not the same."));                                                  \
         }
 
         TEST_VECTOR(rom-initial-condition.h5, initial)
@@ -319,7 +321,8 @@ namespace ComputePOD
           for (unsigned int i = 0; i < n_pod_dofs; ++i)
             {
               AssertThrow(extra::are_equal(test_nonlinearity[i], nonlinearity[i], 1e-14),
-                          ExcMessage("Test failed! The nonlinearity is not the same as the saved version."));
+                          ExcMessage("Test failed! The nonlinearity is not the same as "
+                                     "the saved version."));
             }
       }
     else
