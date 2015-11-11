@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 from __future__ import print_function
 
+import glob
 import math
 import os
 import shutil
@@ -49,10 +50,9 @@ def main():
     filter_radii = np.linspace(0.05, 0.15, 101)
     n_processes = 16
 
-    link_names = (["triangulation.txt", "mean-vector.h5", "initial.h5"] +
-                  ["pod-vector-000000{}.h5".format(index) for index in range(6)])
+    link_names = glob.glob("rom-*.h5")
     process_executable = "run.sh"
-    copy_names = ["rom", process_executable]
+    copy_names = ["ns-rom", process_executable]
 
     for noise_multiplier in noise_multipliers:
         for filter_radius in filter_radii:
