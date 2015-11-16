@@ -65,6 +65,8 @@ namespace POD
       LAPACKFullMatrix<double> factorized_mass_matrix;
       const std::vector<FullMatrix<double>> nonlinear_operator;
       const Vector<double> mean_contribution;
+      const unsigned int n_pod_dofs;
+      mutable Vector<double> temp;
     };
 
 

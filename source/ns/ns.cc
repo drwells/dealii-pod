@@ -6,7 +6,9 @@ namespace POD
 
   namespace NavierStokes
   {
-    PlainRHS::PlainRHS() {}
+    PlainRHS::PlainRHS() :
+      n_pod_dofs {numbers::invalid_unsigned_int}
+    {}
 
 
     PlainRHS::PlainRHS(const FullMatrix<double> linear_operator,
@@ -15,7 +17,9 @@ namespace POD
                        const Vector<double> mean_contribution) :
       linear_operator {linear_operator},
       nonlinear_operator {nonlinear_operator},
-      mean_contribution {mean_contribution}
+      mean_contribution {mean_contribution},
+      n_pod_dofs {mass_matrix.m()},
+      temp(n_pod_dofs)
     {
       factorized_mass_matrix.reinit(mass_matrix.m());
       factorized_mass_matrix = mass_matrix;
@@ -24,12 +28,10 @@ namespace POD
 
     void PlainRHS::apply(Vector<double> &dst, const Vector<double> &src)
     {
-      const unsigned int n_dofs = src.size();
       linear_operator.vmult(dst, src);
       dst += mean_contribution;
 
-      Vector<double> temp(n_dofs);
-      for (unsigned int pod_vector_n = 0; pod_vector_n < n_dofs; ++pod_vector_n)
+      for (unsigned int pod_vector_n = 0; pod_vector_n < n_pod_dofs; ++pod_vector_n)
         {
           nonlinear_operator[pod_vector_n].vmult(temp, src);
           dst(pod_vector_n) -= temp * src;
@@ -99,7 +101,9 @@ namespace POD
        const double lavrentiev_parameter) :
         FilterBase(mass_matrix, laplace_matrix, boundary_matrix, filter_radius,
                    noise_multiplier),
-        lavrentiev_parameter {lavrentiev_parameter}
+        lavrentiev_parameter {lavrentiev_parameter},
+        work0(mass_matrix.m()),
+        work1(mass_matrix.m())
       {}
 
       /*
@@ -125,11 +129,6 @@ namespace POD
       void LavrentievFilter::apply_inverse
       (Vector<double> &dst, const Vector<double> &src)
       {
-        if (work0.size() == 0 || work1.size() == 0)
-          {
-            work0.reinit(src.size());
-            work1.reinit(src.size());
-          }
         work0 = src;
 
         for (unsigned int i = 0; i < work0.size(); ++i)
@@ -164,6 +163,10 @@ namespace POD
         nonlinear_operator {nonlinear_operator},
         mean_contribution {mean_contribution},
         reynolds_n {reynolds_n},
+        work0(mass_matrix.m()),
+        work1(mass_matrix.m()),
+        work2(mass_matrix.m()),
+        approximately_deconvolved_solution(mass_matrix.m()),
         filter {std::move(ad_filter)}
       {
         factorized_mass_matrix.reinit(mass_matrix.m());
@@ -175,13 +178,6 @@ namespace POD
       void FilterRHS::apply
       (Vector<double> &dst, const Vector<double> &src)
       {
-        if (work0.size() == 0 || work1.size() == 0 || work2.size() == 0)
-          {
-            work0.reinit(src.size());
-            work1.reinit(src.size());
-            work2.reinit(src.size());
-            approximately_deconvolved_solution.reinit(src.size());
-          }
         // get an approximation of the unfiltered solution
         filter->apply_inverse(approximately_deconvolved_solution, src);
 
