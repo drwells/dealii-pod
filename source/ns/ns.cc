@@ -163,7 +163,7 @@ namespace POD
         nonlinear_operator {nonlinear_operator},
         mean_contribution {mean_contribution},
         reynolds_n {reynolds_n},
-        work0(mass_matrix.m()),
+        unfiltered_contribution(mass_matrix.m()),
         work1(mass_matrix.m()),
         work2(mass_matrix.m()),
         approximately_deconvolved_solution(mass_matrix.m()),
@@ -178,38 +178,34 @@ namespace POD
       void FilterRHS::apply
       (Vector<double> &dst, const Vector<double> &src)
       {
+        dst = 0.0;
         // get an approximation of the unfiltered solution
         filter->apply_inverse(approximately_deconvolved_solution, src);
 
-        // add the result of the filtered mean contribution
-        work0 = mean_contribution;
-        factorized_mass_matrix.apply_lu_factorization(work0, false);
-        filter->apply(dst, work0);
+        // compute the result of the filtered mean contribution
+        unfiltered_contribution = mean_contribution;
 
         // add the result of the convection matrices
-        joint_convection_matrix.vmult(work0, approximately_deconvolved_solution);
-        factorized_mass_matrix.apply_lu_factorization(work0, false);
-        filter->apply(work1, work0);
-        dst += work1;
+        joint_convection_matrix.vmult(work1, approximately_deconvolved_solution);
+        unfiltered_contribution += work1;
 
         // and the nonlinearity
-        work1 = 0.0;
         for (unsigned int pod_vector_n = 0; pod_vector_n < src.size(); ++pod_vector_n)
           {
-            nonlinear_operator[pod_vector_n].vmult(work0, approximately_deconvolved_solution);
-            work1(pod_vector_n) -= work0 * approximately_deconvolved_solution;
+            nonlinear_operator[pod_vector_n].vmult(work1, approximately_deconvolved_solution);
+            unfiltered_contribution[pod_vector_n] -= work1 * approximately_deconvolved_solution;
           }
-        factorized_mass_matrix.apply_lu_factorization(work1, false);
-        filter->apply(work0, work1);
-        dst += work0;
+        factorized_mass_matrix.apply_lu_factorization(unfiltered_contribution, false);
+        filter->apply(work1, unfiltered_contribution);
+        dst += work1;
 
         // add the result of the laplace matrix
-        laplace_matrix.vmult(work0, src);
-        dst.add(-1.0/reynolds_n, work0);
+        laplace_matrix.vmult(work1, src);
+        dst.add(-1.0/reynolds_n, work1);
 
         // and the boundary matrix
-        boundary_matrix.vmult(work0, src);
-        dst.add(1.0/reynolds_n, work0);
+        boundary_matrix.vmult(work1, src);
+        dst.add(1.0/reynolds_n, work1);
 
         factorized_mass_matrix.apply_lu_factorization(dst, false);
       }

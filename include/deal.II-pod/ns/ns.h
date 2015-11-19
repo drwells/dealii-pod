@@ -188,10 +188,10 @@ namespace POD
         const Vector<double> mean_contribution;
         const double reynolds_n;
 
-        Vector<double> work0;
-        Vector<double> work1;
-        Vector<double> work2;
-        Vector<double> approximately_deconvolved_solution;
+        mutable Vector<double> unfiltered_contribution;
+        mutable Vector<double> work1;
+        mutable Vector<double> work2;
+        mutable Vector<double> approximately_deconvolved_solution;
 
         std::unique_ptr<FilterBase> filter;
 
