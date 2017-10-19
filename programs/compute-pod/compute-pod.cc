@@ -180,7 +180,7 @@ namespace POD
             data_out.add_data_vector
               (vector_solution, solution_names, DataOut<dim>::type_dof_data,
                component_interpretation);
-            data_out.build_patches (2);
+            data_out.build_patches (0);
             data_out.write_filtered_data(data_filter);
 
             data_out.write_hdf5_parallel
