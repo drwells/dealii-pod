@@ -43,7 +43,7 @@ namespace POD
     vector_fe = std::unique_ptr<FESystem<dim>>
       {new FESystem<dim>(dof_handler->get_fe(), dim)};
     write_mesh = true;
-    vector_dof_handler.initialize(dof_handler->get_tria(), *vector_fe);
+    vector_dof_handler.initialize(dof_handler->get_triangulation(), *vector_fe);
   }
 
   template<int dim>

@@ -40,7 +40,7 @@ void Parameters::read_data(const std::string &file_name)
   {
     std::ifstream file(file_name);
     configure_parameter_handler(parameter_handler);
-    parameter_handler.read_input(file);
+    parameter_handler.parse_input(file);
   }
 
   parameter_handler.enter_subsection("DNS Information");

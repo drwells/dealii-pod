@@ -56,7 +56,7 @@ namespace ComputePOD
     {
       std::ifstream file(file_name);
       configure_parameter_handler(parameter_handler);
-      parameter_handler.read_input(file);
+      parameter_handler.parse_input(file);
     }
 
     parameter_handler.enter_subsection("DNS");
