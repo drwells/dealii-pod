@@ -108,9 +108,18 @@ namespace POD
 
     TemporaryFileName::TemporaryFileName()
     {
-      char c_name[L_tmpnam];
-      tmpnam(c_name);
-      name = c_name;
+      std::array<char, 20> character_template;
+      std::fill(character_template.begin(), character_template.end() - 7, 'a');
+      std::fill(character_template.end() - 7, character_template.end() - 1, 'X');
+      character_template.back() = '\0';
+
+      // we don't need the handle so close it immediately
+      int handle = mkstemp(character_template.data());
+      AssertThrow(handle != -1, ExcInternalError());
+      int ierr = close(handle);
+      AssertThrow(ierr != -1, ExcInternalError());
+
+      name = std::string(character_template.begin(), character_template.end());
     }
 
     TemporaryFileName::~TemporaryFileName()
