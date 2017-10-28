@@ -172,7 +172,7 @@ namespace POD
                           (loc_component_dof_indices[vector_fe.system_to_base_index(j).second]);
                         break;
                       default:
-                        ExcInternalError();
+                        Assert(false, ExcInternalError());
                       }
                   }
               }
