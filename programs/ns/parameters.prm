@@ -4,8 +4,9 @@ end
 
 subsection Filtering Model Configuration
   # use 'Differential', 'L2Projection', 'PostDifferentialFilter',
-  # 'PostL2ProjectionFilter', 'LerayHybrid', or 'ADLavrentiev'
-  set filter_model = ADLavrentiev
+  # 'PostDifferentialFilterRelax', 'PostL2ProjectionFilter', 'LerayHybrid', or
+  # 'ADLavrentiev'
+  set filter_model = PostDifferentialFilterRelax
   # while both may be specified, only one will be used for the Leray-like
   # filters.
   set filter_radius = 0.0
@@ -14,6 +15,7 @@ subsection Filtering Model Configuration
   # ADLavrentiev) models
   set noise_multiplier = 0.0
   set lavrentiev_parameter = 0.0
+  set relaxation_parameter = 1.0e-4
   # this value is only used with the Leray models, and is ignored in the
   # 'LerayHybrid' case (it only makes sense for it to be true in that context)
   set filter_mean = true

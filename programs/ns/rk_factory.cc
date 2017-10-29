@@ -77,6 +77,19 @@ namespace POD
             (new ODE::RungeKutta4PostFilter
              (std::move(plain_rhs_function), std::move(filter_function)));
         }
+      else if (parameters.filter_model == POD::FilterModel::PostDifferentialFilterRelax)
+        {
+          Assert(!parameters.filter_mean, StandardExceptions::ExcNotImplemented());
+          outname << "pod-postfilter-differential-radius-"
+                  << parameters.filter_radius;
+          std::unique_ptr<POD::NavierStokes::PostDifferentialFilterRelax> filter_function
+            (new POD::NavierStokes::PostDifferentialFilterRelax
+             (mass_matrix, laplace_matrix, boundary_matrix,
+              parameters.filter_radius, parameters.relaxation_parameter));
+          rk_method = std::unique_ptr<ODE::RungeKutta4PostFilter>
+            (new ODE::RungeKutta4PostFilter
+             (std::move(plain_rhs_function), std::move(filter_function)));
+        }
       else if (parameters.filter_model == POD::FilterModel::PostL2ProjectionFilter)
         {
           if (parameters.filter_mean)

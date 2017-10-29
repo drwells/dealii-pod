@@ -301,6 +301,25 @@ namespace POD
     }
 
 
+    PostDifferentialFilterRelax::PostDifferentialFilterRelax
+    (const FullMatrix<double> &mass_matrix,
+     const FullMatrix<double> &laplace_matrix,
+     const FullMatrix<double> &boundary_matrix,
+     const double filter_radius,
+     const double relaxation_parameter) :
+      relaxation_parameter(relaxation_parameter),
+      differential_filter(mass_matrix, laplace_matrix, boundary_matrix, filter_radius)
+    {}
+
+
+    void PostDifferentialFilterRelax::apply(Vector<double> &dst,
+                                            const Vector<double> &src)
+    {
+      differential_filter.apply(dst, src);
+      dst.sadd((1.0 - relaxation_parameter), relaxation_parameter, src);
+    }
+
+
     PostL2ProjectionFilter::PostL2ProjectionFilter
     (const unsigned int cutoff_n) : cutoff_n (cutoff_n) {}
 

@@ -21,7 +21,7 @@ namespace POD
           ("filter_model", "Differential",
            Patterns::Selection
            ("L2Projection|Differential|PostL2ProjectionFilter|PostDifferentialFilter"
-            "|LerayHybrid|ADLavrentiev|ADTikhonov"),
+            "|PostDifferentialFilterRelax|LerayHybrid|ADLavrentiev|ADTikhonov"),
            " Filtering strategy for the POD-ROM.");
         parameter_handler.declare_entry
           ("noise_multiplier", "0.0", Patterns::Double(0.0), "Multiplier on the "
@@ -29,6 +29,9 @@ namespace POD
         parameter_handler.declare_entry
           ("lavrentiev_parameter", "0.0", Patterns::Double(0.0), "Multiplier for"
            " the Lavrentiev regularization.");
+        parameter_handler.declare_entry
+          ("relaxation_parameter", "0.0", Patterns::Double(0.0), "Parameter for"
+           " the relaxation step.");
         parameter_handler.declare_entry
           ("filter_radius", "0.0", Patterns::Double(0.0), " Filter radius for the "
            "differential or post filter.");
@@ -101,6 +104,10 @@ namespace POD
           {
             filter_model = POD::FilterModel::PostDifferentialFilter;
           }
+        else if (filter_model_param == std::string("PostDifferentialFilterRelax"))
+          {
+            filter_model = POD::FilterModel::PostDifferentialFilterRelax;
+          }
         else if (filter_model_param == std::string("PostL2ProjectionFilter"))
           {
             filter_model = POD::FilterModel::PostL2ProjectionFilter;
@@ -124,6 +131,7 @@ namespace POD
 
         noise_multiplier = parameter_handler.get_double("noise_multiplier");
         lavrentiev_parameter = parameter_handler.get_double("lavrentiev_parameter");
+        relaxation_parameter = parameter_handler.get_double("relaxation_parameter");
         filter_radius = parameter_handler.get_double("filter_radius");
         cutoff_n = parameter_handler.get_integer("cutoff_n");
         filter_mean = parameter_handler.get_bool("filter_mean");

@@ -31,6 +31,7 @@ namespace POD
       L2Projection,
       PostDifferentialFilter,
       PostL2ProjectionFilter,
+      PostDifferentialFilterRelax,
       LerayHybrid,
       ADLavrentiev,
       ADTikonov
@@ -46,6 +47,7 @@ namespace POD
       POD::FilterModel filter_model;
       double noise_multiplier;
       double lavrentiev_parameter;
+      double relaxation_parameter;
       double filter_radius;
       unsigned int cutoff_n;
       bool filter_mean;

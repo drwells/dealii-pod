@@ -233,6 +233,22 @@ namespace POD
     };
 
 
+    class PostDifferentialFilterRelax : public ODE::OperatorBase
+    {
+    public:
+      PostDifferentialFilterRelax
+      (const FullMatrix<double> &mass_matrix,
+       const FullMatrix<double> &laplace_matrix,
+       const FullMatrix<double> &boundary_matrix,
+       const double filter_radius,
+       const double relaxation_parameter);
+      virtual void apply(Vector<double> &dst, const Vector<double> &src);
+    private:
+      double relaxation_parameter;
+      PostDifferentialFilter differential_filter;
+    };
+
+
     class PostL2ProjectionFilter : public ODE::OperatorBase
     {
     public:
