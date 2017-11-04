@@ -94,41 +94,45 @@ namespace POD
     for (i = 0; i < n_snapshots; ++i)
       {
         // As the matrix has provably positive real eigenvalues...
-        auto eigenvalue = correlation_matrix.eigenvalue(i);
+        const std::complex<double> eigenvalue = correlation_matrix.eigenvalue(i);
         Assert(eigenvalue.imag() == 0.0, ExcInternalError());
-        // Assert(eigenvalue.real() > 0.0, ExcInternalError());
-        pod_basis.singular_values.at(i) = std::sqrt(eigenvalue.real());
+        pod_basis.singular_values[i] = std::sqrt(eigenvalue.real());
       }
     std::reverse(eigenvectors.begin(), eigenvectors.end());
     std::reverse(pod_basis.singular_values.begin(), pod_basis.singular_values.end());
 
     const unsigned int n_actual_pod_vectors = std::min(n_snapshots, n_pod_vectors);
     pod_basis.vectors.resize(n_actual_pod_vectors);
-    #pragma omp parallel for
-    for (unsigned int eigenvector_n = 0; eigenvector_n < n_actual_pod_vectors;
-         ++eigenvector_n)
-      {
-        BlockVector<double> pod_vector(n_blocks, n_dofs_per_block);
-        pod_vector.collect_sizes();
-        pod_vector = 0;
-        auto &eigenvector = eigenvectors.at(eigenvector_n);
-        auto singular_value = pod_basis.singular_values.at(eigenvector_n);
 
-        unsigned int snapshot_n = 0;
-        for (auto &snapshot : snapshots)
-          {
-            if (!std::isnan(eigenvector[snapshot_n]) && !std::isnan(singular_value))
-              {
-                pod_vector.add(eigenvector[snapshot_n], snapshot);
-              }
-            ++snapshot_n;
-          }
-        pod_basis.vectors.at(eigenvector_n) = std::move(pod_vector);
-      }
+    {
+      Threads::TaskGroup<> linear_combination_tasks;
+      for (unsigned int eigenvector_n = 0; eigenvector_n < n_actual_pod_vectors;
+           ++eigenvector_n)
+        {
+          linear_combination_tasks += Threads::new_task
+            (std::function<void()>([&, eigenvector_n]
+             {
+               const Vector<double> &eigenvector = eigenvectors[eigenvector_n];
+               const double singular_value = pod_basis.singular_values[eigenvector_n];
+
+               BlockVector<double> pod_vector(n_blocks, n_dofs_per_block);
+               std::size_t snapshot_n = 0;
+               for (const BlockVector<double> &snapshot : snapshots)
+                 {
+                   if (!std::isnan(eigenvector[snapshot_n]) && !std::isnan(singular_value))
+                     {
+                       pod_vector.add(eigenvector[snapshot_n], snapshot);
+                     }
+                   ++snapshot_n;
+                 }
+               pod_basis.vectors[eigenvector_n] = std::move(pod_vector);
+             }));
+        }
+    }
 
     for (unsigned int pod_vector_n = 0; pod_vector_n < n_actual_pod_vectors; ++pod_vector_n)
       {
-        auto &singular_value = pod_basis.singular_values.at(pod_vector_n);
+        const double singular_value = pod_basis.singular_values.at(pod_vector_n);
         if (!std::isnan(singular_value))
           {
             pod_basis.vectors.at(pod_vector_n) *= 1.0/singular_value;
