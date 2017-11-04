@@ -28,6 +28,8 @@ namespace POD
   class Parameters
   {
   public:
+    Parameters();
+
     int dimension;
     int fe_order;
     bool renumber;

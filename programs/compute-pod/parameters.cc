@@ -4,6 +4,18 @@
 
 namespace POD
 {
+  Parameters::Parameters() :
+    dimension(3),
+    fe_order(2),
+    renumber(true),
+    snapshot_glob("snapshot-*h5"),
+    triangulation_file_name("triangulation.txt"),
+    n_pod_vectors(20),
+    center_trajectory(true),
+    save_plot_pictures(true)
+  {}
+
+
   void Parameters::configure_parameter_handler
   (ParameterHandler &parameter_handler) const
   {
