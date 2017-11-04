@@ -117,7 +117,7 @@ namespace POD
     for (auto singular_value : pod_result.singular_values)
       {
         double output = std::isnan(singular_value) ? -0.0 : singular_value;
-        singular_values_stream << output << std::endl;
+        singular_values_stream << std::setprecision(16) << output << '\n';
       }
     std::string mean_vector_name = "mean-vector.h5";
     H5::save_block_vector(mean_vector_name, pod_result.mean_vector);
