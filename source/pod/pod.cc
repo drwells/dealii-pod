@@ -30,7 +30,6 @@ namespace POD
                            const bool                      center_trajectory,
                            BlockPODBasis                  &pod_basis)
   {
-    BlockVector<double> block_vector;
     std::vector<BlockVector<double>> snapshots;
 
     const double mean_weight = 1.0/snapshot_file_names.size();
@@ -40,8 +39,9 @@ namespace POD
     unsigned int n_blocks = 0;
     unsigned int i = 0;
 
-    for (auto &snapshot_file_name : snapshot_file_names)
+    for (const std::string &snapshot_file_name : snapshot_file_names)
       {
+        BlockVector<double> block_vector;
         H5::load_block_vector(snapshot_file_name, block_vector);
         if (!pod_basis_initialized)
           {
@@ -58,7 +58,7 @@ namespace POD
 
     if (center_trajectory)
       {
-        for (auto &snapshot : snapshots)
+        for (BlockVector<double> &snapshot : snapshots)
           {
             snapshot.add(-1.0, pod_basis.mean_vector);
           }
@@ -80,7 +80,7 @@ namespace POD
           }
         for (unsigned int column = 0; column <= row; ++column)
           {
-            double value = temp * snapshots.at(column);
+            const double value = temp * snapshots[column];
             correlation_matrix(row, column) = value;
             correlation_matrix(column, row) = value;
           }
